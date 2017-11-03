@@ -27,7 +27,7 @@
 
 namespace acados {
 
-class OcpNlpSolver {
+class OcpNlpSolver : protected ocp_nlp_solver {
 public:
     OcpNlpSolver();
     ~OcpNlpSolver();

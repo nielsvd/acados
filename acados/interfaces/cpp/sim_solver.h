@@ -20,9 +20,17 @@
 #ifndef ACADOS_INTERFACES_CPP_SIM_SOLVER_H_
 #define ACADOS_INTERFACES_CPP_SIM_SOLVER_H_
 
+#include "acados/sim/sim_common.h"
+#include "acados/utils/types.h"
+
 namespace acados {
 
-class SimSolver {
+class SimSolver : protected sim_solver {
+public:
+    SimSolver();
+    ~SimSolver();
+
+private:
 
 };  // class SimSolver
 

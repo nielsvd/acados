@@ -21,4 +21,12 @@
 
 namespace acados {
 
+SimSolver::SimSolver() {
+
+}
+
+SimSolver::~SimSolver() {
+
+}
+
 }  // namespace acados

@@ -21,4 +21,12 @@
 
 namespace acados {
 
+OcpQpSolver::OcpQpSolver() {
+
+}
+
+OcpQpSolver::~OcpQpSolver() {
+
+}
+
 }  // namespace acados

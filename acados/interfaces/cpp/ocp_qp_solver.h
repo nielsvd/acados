@@ -20,9 +20,17 @@
 #ifndef ACADOS_INTERFACES_CPP_OCP_QP_SOLVER_H_
 #define ACADOS_INTERFACES_CPP_OCP_QP_SOLVER_H_
 
+#include "acados/ocp_qp/ocp_qp_common.h"
+#include "acados/utils/types.h"
+
 namespace acados {
 
-class OcpQpSolver {
+class OcpQpSolver : protected ocp_qp_solver {
+public:
+    OcpQpSolver();
+    ~OcpQpSolver();
+
+private:
 
 };  // class OcpQpSolver
 
