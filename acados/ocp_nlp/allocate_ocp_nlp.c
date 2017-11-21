@@ -195,38 +195,37 @@ void free_ocp_nlp_out(int_t N, ocp_nlp_out *out) {
     free(out->lam);
 }
 
-void allocate_ls_cost(int_t N, int_t *nx, int_t *nu, int_t *ny, ocp_nlp_ls_cost *ls_cost) {
-    ls_cost->N = N;
-    ls_cost->W = calloc(N + 1, sizeof(*ls_cost->W));
-    ls_cost->y_ref = calloc(N + 1, sizeof(*ls_cost->y_ref));
-    ls_cost->fun = calloc(N + 1, sizeof(*ls_cost->fun));
-    for (int_t i = 0; i <= N; i++) {
-        ls_cost->W[i] = calloc(ny[i]*ny[i], sizeof(*ls_cost->W[i]));
-        ls_cost->y_ref[i] = calloc(ny[i], sizeof(*ls_cost->y_ref[i]));
-        ls_cost->fun[i] = malloc(sizeof(ocp_nlp_function));
-        // Initialize LS cost
-        ls_cost->fun[i]->nx = nx[i];
-        ls_cost->fun[i]->nu = nu[i];
-        ls_cost->fun[i]->np = 0;
-        ls_cost->fun[i]->ny = ny[i];
-        ls_cost->fun[i]->in = malloc(sizeof(casadi_wrapper_in));
-        ls_cost->fun[i]->in->compute_jac = true;
-        ls_cost->fun[i]->in->compute_hess = false;
-        ls_cost->fun[i]->out = malloc(sizeof(casadi_wrapper_out));
-        ls_cost->fun[i]->args = casadi_wrapper_create_arguments();
-    }
+void allocate_nlp_function(int_t nx, int_t nu, int_t ny, ocp_nlp_function **nlp_function) {
+    *nlp_function = (ocp_nlp_function *) malloc(sizeof(ocp_nlp_function));
+    (*nlp_function)->nx = nx;
+    (*nlp_function)->nu = nu;
+    (*nlp_function)->np = 0;
+    (*nlp_function)->ny = ny;
+    (*nlp_function)->in = malloc(sizeof(casadi_wrapper_in));
+    (*nlp_function)->in->compute_jac = true;
+    (*nlp_function)->in->compute_hess = false;
+    (*nlp_function)->out = malloc(sizeof(casadi_wrapper_out));
+    (*nlp_function)->args = casadi_wrapper_create_arguments();
 }
 
-void free_ls_cost(int_t N, ocp_nlp_ls_cost *ls_cost) {
-    for (int_t i = 0; i <= N; i++) {
-        free(ls_cost->fun[i]);
-        free(ls_cost->fun[i]->in);
-        free(ls_cost->fun[i]->out);
-        free(ls_cost->fun[i]->args);
-        casadi_wrapper_destroy(ls_cost->fun[i]->work);
-        free(ls_cost->y_ref[i]);
-    }
+void free_nlp_function(ocp_nlp_function *nlp_function) {
+    free(nlp_function->in);
+    free(nlp_function->out);
+    free(nlp_function->args);
+    casadi_wrapper_destroy(nlp_function->work);
+    free(nlp_function);
+}
+
+void allocate_ls_cost(int_t nx, int_t nu, int_t ny, ocp_nlp_ls_cost **ls_cost) {
+    *ls_cost = (ocp_nlp_ls_cost *) malloc(sizeof(ocp_nlp_ls_cost));
+    (*ls_cost)->W = calloc(ny * ny, sizeof(real_t));
+    (*ls_cost)->y_ref = calloc(ny, sizeof(real_t));
+    allocate_nlp_function(nx, nu, ny, &(*ls_cost)->fun);
+}
+
+void free_ls_cost(ocp_nlp_ls_cost *ls_cost) {
+    free_nlp_function(ls_cost->fun);
     free(ls_cost->W);
     free(ls_cost->y_ref);
-    free(ls_cost->fun);
+    free(ls_cost);
 }

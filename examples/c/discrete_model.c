@@ -40,6 +40,7 @@ int main() {
     // Problem-specific data
     int_t N = 1, NX = 1, NU = 1;
     real_t W[] = {1.0, 0.0, 0.0, 1.0};
+    real_t WN[] = {1.0};
     real_t ref[] = {0.0, 0.0};
     real_t x0[] = {0.8};
     int_t num_sqp_iterations = 1;
@@ -68,22 +69,27 @@ int main() {
     int_t idxb0[] = {0};
     nlp.idxb[0] = idxb0;
 
-    ocp_nlp_ls_cost ls_cost;
-    allocate_ls_cost(N, nx, nu, ny, &ls_cost);
-    nlp.cost = &ls_cost;
+    ocp_nlp_ls_cost *ls_cost [N+1];
+    nlp.cost = (void *) ls_cost;
     // Cost function
-    for (int_t k = 0; k <= N; k++) {
-        memcpy(ls_cost.W[k], W, (nx[k]+nu[k])*(nx[k]+nu[k])*sizeof(real_t));
-        memcpy(ls_cost.y_ref[k], ref, (nx[k]+nu[k])*sizeof(real_t));
-        ls_cost.fun[k]->args->fun = &discrete_model_cost;
-        ls_cost.fun[k]->args->dims = &discrete_model_cost_work;
-        ls_cost.fun[k]->args->sparsity = &discrete_model_cost_sparsity_out;
-        casadi_wrapper_initialize(ls_cost.fun[k]->in, ls_cost.fun[k]->args, &ls_cost.fun[k]->work);
+    for (int_t k = 0; k < N; k++) {
+        allocate_ls_cost(nx[k], nu[k], ny[k], &ls_cost[k]);
+        memcpy(ls_cost[k]->W, W, (ny[k] * ny[k])*sizeof(real_t));
+        memcpy(ls_cost[k]->y_ref, ref, ny[k] * sizeof(real_t));
+        ls_cost[k]->fun->args->fun = &discrete_model_cost;
+        ls_cost[k]->fun->args->dims = &discrete_model_cost_work;
+        ls_cost[k]->fun->args->sparsity = &discrete_model_cost_sparsity_out;
+        casadi_wrapper_initialize(ls_cost[k]->fun->in, ls_cost[k]->fun->args,
+                                  &ls_cost[k]->fun->work);
     }
-    ls_cost.fun[N]->args->fun = &discrete_model_costN;
-    ls_cost.fun[N]->args->dims = &discrete_model_costN_work;
-    ls_cost.fun[N]->args->sparsity = &discrete_model_costN_sparsity_out;
-    casadi_wrapper_initialize(ls_cost.fun[N]->in, ls_cost.fun[N]->args, &ls_cost.fun[N]->work);
+    allocate_ls_cost(nx[N], nu[N], ny[N], &ls_cost[N]);
+    memcpy(ls_cost[N]->W, WN, (ny[N] * ny[N]) * sizeof(real_t));
+    memcpy(ls_cost[N]->y_ref, ref, ny[N] * sizeof(real_t));
+    ls_cost[N]->fun->args->fun = &discrete_model_costN;
+    ls_cost[N]->fun->args->dims = &discrete_model_costN_work;
+    ls_cost[N]->fun->args->sparsity = &discrete_model_costN_sparsity_out;
+    casadi_wrapper_initialize(ls_cost[N]->fun->in, ls_cost[N]->fun->args,
+                              &ls_cost[N]->fun->work);
 
     // Dynamics
     sim_solver **simulators = (sim_solver **) nlp.sim;

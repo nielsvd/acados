@@ -27,11 +27,12 @@
 
 #include "catch/include/catch.hpp"
 
+#include "acados/ocp_nlp/allocate_ocp_nlp.h"
 #include "acados/ocp_nlp/ocp_nlp_sm_gn.h"
 #include "acados/ocp_nlp/ocp_nlp_sqp.h"
 #include "acados/ocp_qp/ocp_qp_common.h"
-#include "acados/ocp_qp/ocp_qp_qpdunes.h"
 #include "acados/ocp_qp/ocp_qp_condensing_qpoases.h"
+#include "acados/ocp_qp/ocp_qp_qpdunes.h"
 #include "acados/sim/sim_casadi_wrapper.h"
 #include "acados/sim/sim_common.h"
 #include "acados/sim/sim_erk_integrator.h"
@@ -99,16 +100,30 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
 
                 // Problem data
                 int_t N = NN;
-                ocp_nlp_ls_cost ls_cost;
+                int_t nx[NN + 1] = {0};
+                int_t nu[NN + 1] = {0};
+                int_t ny[NN + 1] = {0};
+                int_t nb[NN + 1] = {0};
+                int_t nc[NN + 1] = {0};
+                int_t ng[NN + 1] = {0};
+                for (int_t i = 0; i < N; i++) {
+                    nx[i] = NX;
+                    nu[i] = NU;
+                    ny[i] = NX + NU;
+                }
+                nx[N] = NX;
+                nu[N] = 0;
+                ny[N] = NX;
+
+                /************************************************
+                 * cost
+                 ************************************************/
                 real_t *W, *WN;
                 real_t *uref;
                 int_t max_sqp_iters = 20;
                 real_t *x_end;
                 real_t *u_end;
 
-                /************************************************
-                 * cost
-                 ************************************************/
                 d_zeros(&W, NX + NU, NX + NU);
                 d_zeros(&WN, NX, NX);
                 d_zeros(&uref, NU, 1);
@@ -129,106 +144,68 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                     W[(NX + i) * (NX + NU + 1)] = 1.0;
                 for (int_t i = 0; i < NX; i++) WN[i * (NX + 1)] = 1e-2;
 
-                ls_cost.N = N;
-                ls_cost.W = (real_t **)malloc(sizeof(*ls_cost.W) * (N + 1));
-                for (int_t i = 0; i < N; i++) ls_cost.W[i] = W;
-                ls_cost.W[N] = WN;
-                ls_cost.y_ref =
-                    (real_t **)malloc(sizeof(*ls_cost.y_ref) * (N + 1));
-                ls_cost.fun =
-                    (ocp_nlp_function **)malloc(sizeof(*ls_cost.fun) * (N + 1));
+                ocp_nlp_ls_cost **ls_cost = (ocp_nlp_ls_cost **)malloc(
+                    (N + 1)*sizeof(ocp_nlp_ls_cost *));
                 for (int_t i = 0; i < N; i++) {
-                    ls_cost.fun[i] =
-                        (ocp_nlp_function *)malloc(sizeof(ocp_nlp_function));
-                    // Initialize LS cost
-                    ls_cost.fun[i]->nx = NX;
-                    ls_cost.fun[i]->nu = NU;
-                    ls_cost.fun[i]->np = 0;
-                    ls_cost.fun[i]->ny = (NX + NU);
-                    ls_cost.fun[i]->in =
-                        (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-                    ls_cost.fun[i]->in->compute_jac = true;
-                    ls_cost.fun[i]->in->compute_hess = false;
-                    ls_cost.fun[i]->out = (casadi_wrapper_out *)malloc(
-                        sizeof(casadi_wrapper_out));
-                    ls_cost.fun[i]->args = casadi_wrapper_create_arguments();
+                    allocate_ls_cost(nx[i], nu[i], nx[i] + nu[i], &ls_cost[i]);
+                    for (int_t j = 0; j < nx[i]; j++) ls_cost[i]->y_ref[j] = xref[j];
+                    std::memcpy(ls_cost[i]->W, W, (ny[i] * ny[i]) * sizeof(real_t));
                     switch (NMF) {
                         case 1:
-                            ls_cost.fun[i]->args->fun = &ls_cost_nm2;
-                            ls_cost.fun[i]->args->dims = &ls_cost_nm2_work;
-                            ls_cost.fun[i]->args->sparsity =
+                            ls_cost[i]->fun->args->fun = &ls_cost_nm2;
+                            ls_cost[i]->fun->args->dims = &ls_cost_nm2_work;
+                            ls_cost[i]->fun->args->sparsity =
                                 &ls_cost_nm2_sparsity_out;
                             break;
                         case 2:
-                            ls_cost.fun[i]->args->fun = &ls_cost_nm3;
-                            ls_cost.fun[i]->args->dims = &ls_cost_nm3_work;
-                            ls_cost.fun[i]->args->sparsity =
+                            ls_cost[i]->fun->args->fun = &ls_cost_nm3;
+                            ls_cost[i]->fun->args->dims = &ls_cost_nm3_work;
+                            ls_cost[i]->fun->args->sparsity =
                                 &ls_cost_nm3_sparsity_out;
                             break;
                         case 3:
-                            ls_cost.fun[i]->args->fun = &ls_cost_nm4;
-                            ls_cost.fun[i]->args->dims = &ls_cost_nm4_work;
-                            ls_cost.fun[i]->args->sparsity =
+                            ls_cost[i]->fun->args->fun = &ls_cost_nm4;
+                            ls_cost[i]->fun->args->dims = &ls_cost_nm4_work;
+                            ls_cost[i]->fun->args->sparsity =
                                 &ls_cost_nm4_sparsity_out;
                             break;
                         default:
                             REQUIRE(1 == 0);
                             break;
                     }
-                    casadi_wrapper_initialize(ls_cost.fun[i]->in,
-                                              ls_cost.fun[i]->args,
-                                              &ls_cost.fun[i]->work);
-
-                    ls_cost.y_ref[i] =
-                        (real_t *)malloc(sizeof(*ls_cost.y_ref[i]) * (NX + NU));
-                    for (int_t j = 0; j < NX; j++)
-                        ls_cost.y_ref[i][j] = xref[j];
-                    for (int_t j = 0; j < NU; j++)
-                        ls_cost.y_ref[i][NX + j] = 0.0;
+                    casadi_wrapper_initialize(ls_cost[i]->fun->in,
+                                              ls_cost[i]->fun->args,
+                                              &ls_cost[i]->fun->work);
                 }
-                ls_cost.fun[N] =
-                    (ocp_nlp_function *)malloc(sizeof(ocp_nlp_function));
-                ls_cost.fun[N]->nx = NX;
-                ls_cost.fun[N]->nu = 0;
-                ls_cost.fun[N]->np = 0;
-                ls_cost.fun[N]->ny = NX;
-                ls_cost.fun[N]->in =
-                    (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-                ls_cost.fun[N]->in->compute_jac = true;
-                ls_cost.fun[N]->in->compute_hess = false;
-                ls_cost.fun[N]->out =
-                    (casadi_wrapper_out *)malloc(sizeof(casadi_wrapper_out));
-                ls_cost.fun[N]->args = casadi_wrapper_create_arguments();
+                allocate_ls_cost(nx[N], nu[N], nx[N] + nu[N], &ls_cost[N]);
+                for (int_t j = 0; j < nx[N]; j++) ls_cost[N]->y_ref[j] = xref[j];
+                std::memcpy(ls_cost[N]->W, WN, (ny[N] * ny[N]) * sizeof(real_t));
                 switch (NMF) {
                     case 1:
-                        ls_cost.fun[N]->args->fun = &ls_costN_nm2;
-                        ls_cost.fun[N]->args->dims = &ls_costN_nm2_work;
-                        ls_cost.fun[N]->args->sparsity =
+                        ls_cost[N]->fun->args->fun = &ls_costN_nm2;
+                        ls_cost[N]->fun->args->dims = &ls_costN_nm2_work;
+                        ls_cost[N]->fun->args->sparsity =
                             &ls_costN_nm2_sparsity_out;
                         break;
                     case 2:
-                        ls_cost.fun[N]->args->fun = &ls_costN_nm3;
-                        ls_cost.fun[N]->args->dims = &ls_costN_nm3_work;
-                        ls_cost.fun[N]->args->sparsity =
+                        ls_cost[N]->fun->args->fun = &ls_costN_nm3;
+                        ls_cost[N]->fun->args->dims = &ls_costN_nm3_work;
+                        ls_cost[N]->fun->args->sparsity =
                             &ls_costN_nm3_sparsity_out;
                         break;
                     case 3:
-                        ls_cost.fun[N]->args->fun = &ls_costN_nm4;
-                        ls_cost.fun[N]->args->dims = &ls_costN_nm4_work;
-                        ls_cost.fun[N]->args->sparsity =
+                        ls_cost[N]->fun->args->fun = &ls_costN_nm4;
+                        ls_cost[N]->fun->args->dims = &ls_costN_nm4_work;
+                        ls_cost[N]->fun->args->sparsity =
                             &ls_costN_nm4_sparsity_out;
                         break;
                     default:
                         REQUIRE(1 == 0);
                         break;
                 }
-                casadi_wrapper_initialize(ls_cost.fun[N]->in,
-                                          ls_cost.fun[N]->args,
-                                          &ls_cost.fun[N]->work);
-
-                ls_cost.y_ref[N] =
-                    (real_t *)malloc(sizeof(*ls_cost.y_ref[N]) * (NX));
-                for (int_t j = 0; j < NX; j++) ls_cost.y_ref[N][j] = xref(j);
+                casadi_wrapper_initialize(ls_cost[N]->fun->in,
+                                          ls_cost[N]->fun->args,
+                                          &ls_cost[N]->fun->work);
 
                 /************************************************
                  * simulators
@@ -351,18 +328,6 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                     integrators[jj]->work = sim_work;
                 }
 
-                int_t nx[NN + 1] = {0};
-                int_t nu[NN + 1] = {0};
-                int_t nb[NN + 1] = {0};
-                int_t nc[NN + 1] = {0};
-                int_t ng[NN + 1] = {0};
-                for (int_t i = 0; i < N; i++) {
-                    nx[i] = NX;
-                    nu[i] = NU;
-                }
-                nx[N] = NX;
-                nu[N] = 0;
-
                 /************************************************
                  * box constraints
                  ************************************************/
@@ -442,20 +407,8 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                                                 (N + 1));
                 for (int_t i = 0; i < N; i++) {
                     // Initialize path constraints
-                    path_constraints[i] =
-                        (ocp_nlp_function *)malloc(sizeof(ocp_nlp_function));
-                    path_constraints[i]->nx = NX;
-                    path_constraints[i]->nu = NU;
-                    path_constraints[i]->np = 0;
-                    path_constraints[i]->ny = (NX + NU);
-                    path_constraints[i]->in =
-                        (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-                    path_constraints[i]->in->compute_jac = true;
-                    path_constraints[i]->in->compute_hess = false;
-                    path_constraints[i]->out = (casadi_wrapper_out *)malloc(
-                        sizeof(casadi_wrapper_out));
-                    path_constraints[i]->args =
-                        casadi_wrapper_create_arguments();
+                    allocate_nlp_function(nx[i], nu[i], nx[i] + nu[i],
+                                          &path_constraints[i]);
                     switch (NMF) {
                         case 1:
                             path_constraints[i]->args->fun = &pathcon_nm2;
@@ -483,19 +436,8 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                                               path_constraints[i]->args,
                                               &path_constraints[i]->work);
                 }
-                path_constraints[N] =
-                    (ocp_nlp_function *)malloc(sizeof(ocp_nlp_function));
-                path_constraints[N]->nx = NX;
-                path_constraints[N]->nu = 0;
-                path_constraints[N]->np = 0;
-                path_constraints[N]->ny = NX;
-                path_constraints[N]->in =
-                    (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-                path_constraints[N]->in->compute_jac = true;
-                path_constraints[N]->in->compute_hess = false;
-                path_constraints[N]->out =
-                    (casadi_wrapper_out *)malloc(sizeof(casadi_wrapper_out));
-                path_constraints[N]->args = casadi_wrapper_create_arguments();
+                allocate_nlp_function(nx[N], nu[N], nx[N] + nu[N],
+                                      &path_constraints[N]);
                 switch (NMF) {
                     case 1:
                         path_constraints[N]->args->fun = &pathconN_nm2;
@@ -567,9 +509,9 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                 nlp_in.ub = (const real_t **)hub;
                 nlp_in.lg = NULL;
                 nlp_in.ug = NULL;
-                nlp_in.sim = (void **)&integrators;
-                nlp_in.cost = (void *)&ls_cost;
-                nlp_in.path_constraints = (void **)path_constraints;
+                nlp_in.sim = (void **) integrators;
+                nlp_in.cost = (void **) ls_cost;
+                nlp_in.path_constraints = (void **) path_constraints;
 
                 ocp_nlp_out nlp_out;
                 nlp_out.x = (real_t **)malloc(sizeof(*nlp_out.x) * (N + 1));
@@ -687,24 +629,11 @@ TEST_CASE("GN-SQP for nonlinear optimal control of chain of masses",
                 d_free(ubN);
 
                 // LS cost and path constraints
-                for (int_t i = 0; i <= N; i++) {
+                for (int_t i = 0; i <= NN; i++) {
                     // Least-squares cost
-                    free(ls_cost.fun[i]->in);
-                    free(ls_cost.fun[i]->out);
-                    free(ls_cost.fun[i]->args);
-                    casadi_wrapper_destroy(ls_cost.fun[i]->work);
-                    free(ls_cost.y_ref[i]);
-                    free(ls_cost.fun[i]);
-                    // Path constraints
-                    free(path_constraints[i]->in);
-                    free(path_constraints[i]->out);
-                    free(path_constraints[i]->args);
-                    casadi_wrapper_destroy(path_constraints[i]->work);
-                    free(path_constraints[i]);
+                    free_ls_cost(ls_cost[i]);
+                    free_nlp_function(path_constraints[i]);
                 }
-                free(path_constraints);
-                free(ls_cost.W);
-                free(ls_cost.y_ref);
 
                 // Integrators
                 for (jj = 0; jj < N; jj++) {

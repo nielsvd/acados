@@ -485,42 +485,28 @@ LangObject *ocp_qp_output(const ocp_qp_in *in, const ocp_qp_out *out) {
     }
 }
 
-%typemap(in) real_t ** ls_cost_matrix {
+%typemap(in) real_t * ls_cost_matrix {
     $1 = arg1->W;
-    int_t W_dimensions[arg1->N+1];
-    for (int_t i = 0; i < arg1->N+1; i++) {
-        W_dimensions[i] = arg1->fun[i]->ny;
-    }
-    fill_array_from($input, $1, arg1->N+1, W_dimensions, W_dimensions);
+    int_t ny = arg1->fun->ny;
+    copy_from($input, $1, ny*ny);
 }
 
-%typemap(out) real_t ** ls_cost_matrix {
-    int_t W_dimensions[arg1->N+1];
-    for (int_t i = 0; i < arg1->N+1; i++) {
-        W_dimensions[i] = arg1->fun[i]->ny;
-    }
-    $result = new_sequence_from((const real_t **) $1, arg1->N+1, W_dimensions, W_dimensions);
+%typemap(out) real_t * ls_cost_matrix {
+    int_t ny = arg1->fun->ny;
+    int_t dims[2] = {ny, ny};
+    $result = new_matrix<real_t>(dims, (const real_t *) $1);
 }
 
-%typemap(in) real_t **ls_cost_ref {
+%typemap(in) real_t *ls_cost_ref {
     $1 = arg1->y_ref;
-    int_t y_dimensions[arg1->N + 1];
-    int_t ones[arg1->N + 1];
-    for (int_t i = 0; i < arg1->N + 1; i++) {
-        y_dimensions[i] = arg1->fun[i]->ny;
-        ones[i] = 1;
-    }
-    fill_array_from($input, $1, arg1->N + 1, y_dimensions, ones);
+    int_t ny = arg1->fun->ny;
+    copy_from($input, $1, ny);
 }
 
-%typemap(out) real_t **ls_cost_ref {
-    int_t y_dimensions[arg1->N + 1];
-    int_t ones[arg1->N + 1];
-    for (int_t i = 0; i < arg1->N + 1; i++) {
-        y_dimensions[i] = arg1->fun[i]->ny;
-        ones[i] = 1;
-    }
-    $result = new_sequence_from((const real_t **)$1, arg1->N + 1, y_dimensions, ones);
+%typemap(out) real_t *ls_cost_ref {
+    int_t ny = arg1->fun->ny;
+    int_t dims[2] = {ny, 1};
+    $result = new_matrix<real_t>(dims, (const real_t *) $1);
 }
 
 %{
@@ -530,19 +516,19 @@ LangObject *ocp_nlp_output(const ocp_nlp_in *in, const ocp_nlp_out *out) {
     return new_ocp_output_tuple(x_star, u_star);
 }
 
-void ocp_nlp_ls_cost_ls_cost_matrix_set(ocp_nlp_ls_cost *ls_cost, real_t **matrix) {
+void ocp_nlp_ls_cost_ls_cost_matrix_set(ocp_nlp_ls_cost *ls_cost, real_t *matrix) {
     ls_cost->W = matrix;
 }
 
-real_t **ocp_nlp_ls_cost_ls_cost_matrix_get(ocp_nlp_ls_cost *ls_cost) {
+real_t *ocp_nlp_ls_cost_ls_cost_matrix_get(ocp_nlp_ls_cost *ls_cost) {
     return ls_cost->W;
 }
 
-void ocp_nlp_ls_cost_ls_cost_ref_set(ocp_nlp_ls_cost *ls_cost, real_t **y_ref) {
+void ocp_nlp_ls_cost_ls_cost_ref_set(ocp_nlp_ls_cost *ls_cost, real_t *y_ref) {
     ls_cost->y_ref = y_ref;
 }
 
-real_t **ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
+real_t *ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
     return ls_cost->y_ref;
 }
 %}
@@ -697,55 +683,24 @@ real_t **ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
     end
     %}
 #endif
-    real_t **ls_cost_matrix;
-    real_t **ls_cost_ref;
-    ocp_nlp_ls_cost(LangObject *N, LangObject* stage_costs, LangObject *options = NONE){
-        int_t NN = int_from(N);
-        if (!is_sequence(stage_costs, NN + 1)) {
-            throw std::runtime_error(
-                "The array of stage cost functions must be of length N+1!");
-        }
-
-        ocp_nlp_ls_cost *ls_cost = (ocp_nlp_ls_cost *) malloc(sizeof(ocp_nlp_ls_cost));
-        ls_cost->N = NN;
-
-        // Read NLS cost output functions
-        ls_cost->fun = (ocp_nlp_function **) malloc((NN+1)*sizeof(ocp_nlp_function *));
-        for (int_t i = 0; i <= NN; i++) {
-            LangObject* stage_cost_lo = from(stage_costs, i);
-            ocp_nlp_function *stage_cost;
-            SWIG_ConvertPtr(stage_cost_lo, (void **)&stage_cost, SWIGTYPE_p_ocp_nlp_function, 0);
-            // Initialize LS cost
-            ls_cost->fun[i] = (ocp_nlp_function *) malloc(sizeof(ocp_nlp_function));
-            ls_cost->fun[i]->nx = stage_cost->nx;
-            ls_cost->fun[i]->nu = stage_cost->nu;
-            ls_cost->fun[i]->np = stage_cost->np;
-            ls_cost->fun[i]->ny = stage_cost->ny;
-            ls_cost->fun[i]->in = (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-            ls_cost->fun[i]->in->compute_jac = true;
-            ls_cost->fun[i]->in->compute_hess = false;
-            ls_cost->fun[i]->out = (casadi_wrapper_out *)malloc(sizeof(casadi_wrapper_out));
-            ls_cost->fun[i]->args = casadi_wrapper_create_arguments();
-            ls_cost->fun[i]->args->fun = stage_cost->args->fun;
-            ls_cost->fun[i]->args->dims = stage_cost->args->dims;
-            ls_cost->fun[i]->args->sparsity = stage_cost->args->sparsity;
-            casadi_wrapper_initialize(ls_cost->fun[i]->in, ls_cost->fun[i]->args,
-                                      &ls_cost->fun[i]->work);
-        }
+    real_t *ls_cost_matrix;
+    real_t *ls_cost_ref;
+    ocp_nlp_ls_cost(ocp_nlp_function* stage_cost, LangObject *options = NONE){
+        ocp_nlp_ls_cost *ls_cost;
+        
+        int_t nx = stage_cost->nx;
+        int_t nu = stage_cost->nu;
+        int_t ny = stage_cost->ny;
+        allocate_ls_cost(nx, nu, ny, &ls_cost);
+        ls_cost->fun->args->fun = stage_cost->args->fun;
+        ls_cost->fun->args->dims = stage_cost->args->dims;
+        ls_cost->fun->args->sparsity = stage_cost->args->sparsity;
+        casadi_wrapper_initialize(ls_cost->fun->in, ls_cost->fun->args,
+                                  &ls_cost->fun->work);
 
         // Prepare memory for cost and reference
-        ls_cost->W = (real_t **) malloc((NN+1)*sizeof(real_t *));
-        ls_cost->y_ref = (real_t **) malloc((NN+1)*sizeof(real_t *));
-
-        for (int_t i = 0; i <= NN; i++) {
-            int_t ny = ls_cost->fun[i]->ny;
-            ls_cost->W[i] = (real_t *) malloc(ny*ny*sizeof(real_t));
-            ls_cost->y_ref[i] = (real_t *) malloc(ny*sizeof(real_t));
-            for (int_t j = 0; j < ny; j++) {
-                ls_cost->y_ref[i][j] = 0;
-                for (int_t k = 0; k < ny; k++) ls_cost->W[i][j*ny+k] = 0;
-            }
-        }
+        ls_cost->W = (real_t *) calloc(ny*ny, sizeof(real_t));
+        ls_cost->y_ref = (real_t *) calloc(ny, sizeof(real_t));
 
         return ls_cost;
     }
@@ -799,7 +754,12 @@ real_t **ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
             memcpy((void *) nlp_in->idxb[0], idxb, sizeof(idxb));
         }
 
-        // TODO(nielsvd): cost, path_constraints
+        // Allocate memory for stage costs
+        nlp_in->cost = (void **) calloc(N+1, sizeof(void *));
+
+        // Allocate memory for path constraints
+        nlp_in->path_constraints = (void **) calloc(N + 1, sizeof(void *));
+
         return nlp_in;
     }
 
@@ -817,38 +777,33 @@ real_t **ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
         }
     }
 
-    void set_cost(ocp_nlp_ls_cost *ls_cost) {
-        // Make compatible with general cost
-        $self->cost = (void *) ls_cost;
+    void set_cost(LangObject *ls_costs) {
+        if (!is_sequence(ls_costs, $self->N + 1)) {
+            throw std::runtime_error(
+                "The array of least-squares costs must be of length N+1!");
+        }
+
+        for (int_t i = 0; i <= $self->N; i++) {
+            LangObject *lo_ls_cost = from(ls_costs, i);
+            ocp_nlp_ls_cost *ls_cost;
+            SWIG_ConvertPtr(lo_ls_cost, (void **)&ls_cost,
+                            SWIGTYPE_p_ocp_nlp_ls_cost, 0);
+            $self->cost[i] = (void *) ls_cost;
+        }
     }
 
     void set_path_constraints(LangObject *path_constraints) {
-        int_t NN = $self->N;
-        $self->path_constraints = (void **) malloc((NN + 1) * sizeof(ocp_nlp_function *));
-        ocp_nlp_function **pathcons =(ocp_nlp_function **)$self->path_constraints;
-        for (int_t i = 0; i <= NN; i++) {
-            LangObject *path_constraint_lo = from(path_constraints, i);
+        if (!is_sequence(path_constraints, $self->N + 1)) {
+            throw std::runtime_error(
+                "The array of path constraints must be of length N+1!");
+        }
+
+        for (int_t i = 0; i <= $self->N; i++) {
+            LangObject *lo_path_constraint = from(path_constraints, i);
             ocp_nlp_function *path_constraint;
-            SWIG_ConvertPtr(path_constraint_lo, (void **)&path_constraint,
+            SWIG_ConvertPtr(lo_path_constraint, (void **) &path_constraint,
                             SWIGTYPE_p_ocp_nlp_function, 0);
-            // Initialize path constraint
-            pathcons[i] = (ocp_nlp_function *) malloc(sizeof(ocp_nlp_function));
-            pathcons[i]->nx = path_constraint->nx;
-            pathcons[i]->nu = path_constraint->nu;
-            pathcons[i]->np = path_constraint->np;
-            pathcons[i]->ny = path_constraint->ny;
-            pathcons[i]->in =
-                (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-            pathcons[i]->in->compute_jac = true;
-            pathcons[i]->in->compute_hess = false;
-            pathcons[i]->out =
-                (casadi_wrapper_out *)malloc(sizeof(casadi_wrapper_out));
-            pathcons[i]->args = casadi_wrapper_create_arguments();
-            pathcons[i]->args->fun = path_constraint->args->fun;
-            pathcons[i]->args->dims = path_constraint->args->dims;
-            pathcons[i]->args->sparsity = path_constraint->args->sparsity;
-            casadi_wrapper_initialize(pathcons[i]->in, pathcons[i]->args,
-                                      &pathcons[i]->work);
+            $self->path_constraints[i] = (void *) path_constraint;
         }
     }
 }

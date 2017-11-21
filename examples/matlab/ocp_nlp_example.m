@@ -22,18 +22,15 @@ u = SX.sym('u',nu);
 u_N = SX.sym('u',0);
 f = ocp_nlp_function(Function('ls_cost', {x, u}, {vertcat(x, u)}));
 f_N = ocp_nlp_function(Function('ls_cost_N', {x, u_N}, {x}));
-cost_functions = cell(N+1, 1);
-cost_matrices = cell(N+1, 1);
+stage_costs = cell(N+1, 1);
 for i=1:N
-    cost_functions{i} = f;
-    cost_matrices{i} = blkdiag(Q, R);
+    stage_costs{i} = ocp_nlp_ls_cost(f);
+    stage_costs{i}.ls_cost_matrix = blkdiag(Q, R);
 end
-cost_functions{N+1} = f_N;
-cost_matrices{N+1} = Q;
+stage_costs{N+1} = ocp_nlp_ls_cost(f_N);
+stage_costs{N+1}.ls_cost_matrix = Q;
 
-ls_cost = ocp_nlp_ls_cost(N, cost_functions);
-ls_cost.ls_cost_matrix = cost_matrices;
-nlp.set_cost(ls_cost);
+nlp.set_cost(stage_costs);
 
 % Constraints
 g = ocp_nlp_function(Function('path_constraint', {x, u}, {u}));

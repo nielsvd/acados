@@ -56,7 +56,7 @@ typedef struct {
     const real_t **lg;
     const real_t **ug;
 
-    void *cost;
+    void **cost;
     void **sim;
     void **path_constraints;
 } ocp_nlp_in;

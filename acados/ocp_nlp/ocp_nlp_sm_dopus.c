@@ -28,37 +28,37 @@
 #include "acados/utils/types.h"
 
 ocp_nlp_sm_dopus_args *ocp_nlp_sm_dopus_create_arguments() {
-
+    return 0;
 }
 
 int_t ocp_nlp_sm_dopus_calculate_memory_size(const ocp_nlp_sm_in *sm_in,
                                              void *args_) {
-
+    return 0;
 }
 
 char *ocp_nlp_sm_dopus_assign_memory(const ocp_nlp_sm_in *sm_in, void *args_,
                                      void **mem_, void *raw_memory) {
-
+    return 0;
 }
 
 ocp_nlp_sm_dopus_memory *ocp_nlp_sm_dopus_create_memory(
     const ocp_nlp_sm_in *sm_in, void *args_) {
-
+    return 0;
 }
 
 int_t ocp_nlp_sm_dopus_calculate_workspace_size(const ocp_nlp_sm_in *sm_in,
                                                 void *args_) {
-
+    return 0;
 }
 
 char *ocp_nlp_sm_dopus_assign_workspace(const ocp_nlp_sm_in *sm_in, void *args_,
                                         void **work_, void *raw_memory) {
-
+    return 0;
 }
 
 ocp_nlp_sm_dopus_workspace *ocp_nlp_sm_dopus_create_workspace(
     const ocp_nlp_sm_in *sm_in, void *args_) {
-
+    return 0;
 }
 
 int_t ocp_nlp_sm_dopus(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
@@ -81,6 +81,8 @@ int_t ocp_nlp_sm_dopus(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
     // Compute adjoints (reuse workspace variables)
 
     // Compute adjoint gradient correction
+
+    return 0;
 }
 
 void ocp_nlp_sm_dopus_initialize(const ocp_nlp_sm_in *sm_in, void *args_,

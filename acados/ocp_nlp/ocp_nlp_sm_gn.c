@@ -72,20 +72,18 @@ void size_of_workspace_elements(const ocp_nlp_sm_in *sm_in, const int_t stage,
                                 int_t *size_F, int_t *size_DF, int_t *size_DFT,
                                 int_t *size_DFTW, int_t *size_G,
                                 int_t *size_DG) {
-    const int_t *nx = sm_in->nx;
-    const int_t *nu = sm_in->nu;
-    const int_t *ng = sm_in->ng;
+    const int_t nx = sm_in->nx[stage];
+    const int_t nu = sm_in->nu[stage];
+    const int_t ng = sm_in->ng[stage];
 
-    ocp_nlp_function **cost_fun = ((ocp_nlp_ls_cost *)sm_in->cost)->fun;
+    ocp_nlp_function *stage_cost = ((ocp_nlp_ls_cost **)sm_in->cost)[stage]->fun;
 
-    *size_F = (cost_fun[stage]->ny) * sizeof(real_t);
-    *size_DF = (cost_fun[stage]->ny * (nx[stage] + nu[stage])) * sizeof(real_t);
-    *size_DFT =
-        ((nx[stage] + nu[stage]) * cost_fun[stage]->ny) * sizeof(real_t);
-    *size_DFTW =
-        ((nx[stage] + nu[stage]) * cost_fun[stage]->ny) * sizeof(real_t);
-    *size_G = (ng[stage]) * sizeof(real_t);
-    *size_DG = (ng[stage] * (nx[stage] + nu[stage])) * sizeof(real_t);
+    *size_F = (stage_cost->ny) * sizeof(real_t);
+    *size_DF = (stage_cost->ny * (nx + nu)) * sizeof(real_t);
+    *size_DFT = ((nx + nu) * stage_cost->ny) * sizeof(real_t);
+    *size_DFTW = ((nx + nu) * stage_cost->ny) * sizeof(real_t);
+    *size_G = ng * sizeof(real_t);
+    *size_DG = (ng * (nx + nu)) * sizeof(real_t);
 }
 
 int_t ocp_nlp_sm_gn_calculate_workspace_size(const ocp_nlp_sm_in *sm_in,
@@ -184,8 +182,8 @@ ocp_nlp_sm_gn_workspace *ocp_nlp_sm_gn_create_workspace(
 
 int_t ocp_nlp_sm_gn(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
                     void *args_, void *memory_, void *workspace_) {
-    ocp_nlp_sm_gn_workspace *work = (ocp_nlp_sm_gn_workspace *)workspace_;
-    ocp_nlp_sm_gn_memory *mem = memory_;
+    ocp_nlp_sm_gn_workspace *work = (ocp_nlp_sm_gn_workspace *) workspace_;
+    ocp_nlp_sm_gn_memory *mem = (ocp_nlp_sm_gn_memory *) memory_;
 
     const int_t N = sm_in->N;
     const int_t *nx = sm_in->nx;
@@ -200,7 +198,7 @@ int_t ocp_nlp_sm_gn(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
     real_t **g = (real_t **)sm_out->g;
 
     sim_solver **sim = sm_in->sim;
-    ocp_nlp_ls_cost *ls_cost = (ocp_nlp_ls_cost *)sm_in->cost;
+    ocp_nlp_ls_cost **ls_cost = (ocp_nlp_ls_cost **) sm_in->cost;
     ocp_nlp_function **path_constraints = sm_in->path_constraints;
 
     for (int_t i = 0; i < N; i++) {
@@ -235,16 +233,16 @@ int_t ocp_nlp_sm_gn(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
 
     for (int_t i = 0; i <= N; i++) {
         // Least squares cost for shooting node i
-        const int_t ny = ls_cost->fun[i]->ny;
-        casadi_wrapper_in *ls_in = ls_cost->fun[i]->in;
-        casadi_wrapper_out *ls_out = ls_cost->fun[i]->out;
-        casadi_wrapper_args *ls_args = ls_cost->fun[i]->args;
-        casadi_wrapper_workspace *ls_work = ls_cost->fun[i]->work;
+        const int_t ny = ls_cost[i]->fun->ny;
+        casadi_wrapper_in *ls_in = ls_cost[i]->fun->in;
+        casadi_wrapper_out *ls_out = ls_cost[i]->fun->out;
+        casadi_wrapper_args *ls_args = ls_cost[i]->fun->args;
+        casadi_wrapper_workspace *ls_work = ls_cost[i]->fun->work;
 
         // Sensitivities for the quadratic approximation of the objective
         // Compute residual vector F and its Jacobian
         casadi_wrapper(ls_in, ls_out, ls_args, ls_work);
-        for (int_t j = 0; j < ny; j++) work->F[i][j] -= ls_cost->y_ref[i][j];
+        for (int_t j = 0; j < ny; j++) work->F[i][j] -= ls_cost[i]->y_ref[j];
         // Take transpose of DF
         for (int_t j = 0; j < nx[i] + nu[i]; j++) {
             for (int_t k = 0; k < ny; k++)
@@ -254,7 +252,7 @@ int_t ocp_nlp_sm_gn(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
         // Compute Gauss-Newton Hessian
         for (int_t j = 0; j < (nx[i] + nu[i]) * ny; j++) work->DFTW[i][j] = 0;
         dgemm_nn_3l(nx[i] + nu[i], ny, ny, work->DFT[i], nx[i] + nu[i],
-                    (real_t *)ls_cost->W[i], ny, work->DFTW[i], nx[i] + nu[i]);
+                    (real_t *)ls_cost[i]->W, ny, work->DFTW[i], nx[i] + nu[i]);
         dgemm_nn_3l(nx[i] + nu[i], nx[i] + nu[i], ny, work->DFTW[i],
                     nx[i] + nu[i], work->DF[i], ny, hess_l[i], nx[i] + nu[i]);
         // Compute gradient of cost
@@ -307,18 +305,18 @@ void ocp_nlp_sm_gn_initialize(const ocp_nlp_sm_in *sm_in, void *args_,
     (*mem)->inexact_init = false;
 
     int_t N = sm_in->N;
-    ocp_nlp_ls_cost *ls_cost = (ocp_nlp_ls_cost *)sm_in->cost;
+    ocp_nlp_ls_cost **ls_cost = (ocp_nlp_ls_cost **) sm_in->cost;
     ocp_nlp_function **path_constraints = sm_in->path_constraints;
 
     for (int_t i = 0; i <= N; i++) {
         // assign correct pointers to ls_cost-array
-        ls_cost->fun[i]->in->x = sm_in->x[i];
-        ls_cost->fun[i]->in->u = sm_in->u[i];
-        ls_cost->fun[i]->in->p = NULL;  // TODO(nielsvd): support for parameters
-        ls_cost->fun[i]->out->y = (*work)->F[i];
-        ls_cost->fun[i]->out->jac_y = (*work)->DF[i];
-        ls_cost->fun[i]->in->compute_jac = true;
-        ls_cost->fun[i]->in->compute_hess = false;
+        ls_cost[i]->fun->in->x = sm_in->x[i];
+        ls_cost[i]->fun->in->u = sm_in->u[i];
+        ls_cost[i]->fun->in->p = NULL;  // TODO(nielsvd): support for parameters
+        ls_cost[i]->fun->out->y = (*work)->F[i];
+        ls_cost[i]->fun->out->jac_y = (*work)->DF[i];
+        ls_cost[i]->fun->in->compute_jac = true;
+        ls_cost[i]->fun->in->compute_hess = false;
 
         if (sm_in->ng[i] > 0) {
             // assign correct pointers to path_constraints-array

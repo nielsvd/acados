@@ -48,7 +48,7 @@ typedef struct {
     const int_t *nb;
     const int_t *ng;
 
-    void *cost;
+    void **cost;
     sim_solver **sim;
     ocp_nlp_function **path_constraints;
 

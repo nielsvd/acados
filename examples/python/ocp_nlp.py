@@ -22,9 +22,15 @@ u = SX.sym('u', nu)
 u_N = SX.sym('u', 0)
 f = ocp_nlp_function(Function('ls_cost', [x, u], [vertcat(x, u)]))
 f_N = ocp_nlp_function(Function('ls_cost_N', [x, u_N], [x]))
-ls_cost = ocp_nlp_ls_cost(N, N*[f]+[f_N])
-ls_cost.ls_cost_matrix = N*[block_diag(Q, R)] + [Q]
-nlp.set_cost(ls_cost)
+
+stage_costs = []#N*[ocp_nlp_ls_cost(f)] + [ocp_nlp_ls_cost(f_N)]
+for i in range(N):
+    stage_costs += [ocp_nlp_ls_cost(f)]
+    stage_costs[i].ls_cost_matrix = block_diag(Q, R)
+stage_costs += [ocp_nlp_ls_cost(f_N)]
+stage_costs[N].ls_cost_matrix = Q
+
+nlp.set_cost(stage_costs)
 
 # Constraints
 g = ocp_nlp_function(Function('path_constraint', [x, u], [u]))

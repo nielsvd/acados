@@ -72,6 +72,7 @@ casadi_wrapper_args *casadi_wrapper_create_arguments() {
         (casadi_wrapper_args *)malloc(sizeof(casadi_wrapper_args));
     args->fun = NULL;
     args->dims = NULL;
+    args->sparsity = NULL;
 
     return args;
 }
