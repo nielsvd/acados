@@ -30,15 +30,21 @@ typedef struct {
     const real_t *x;
     const real_t *u;
     const real_t *p;
+    const real_t *lag;
 
-    bool compute_jac;
-    bool compute_hess;
+    bool compute_y;
+    bool compute_jac_y;
+    bool compute_hess_y;
+    bool compute_grad_adj;
+    bool compute_hess_adj;
 } casadi_wrapper_in;
 
 typedef struct {
     real_t *y;
     real_t *jac_y;
     real_t *hess_y;
+    real_t *grad_adj;
+    real_t *hess_adj;
 } casadi_wrapper_out;
 
 typedef struct {
