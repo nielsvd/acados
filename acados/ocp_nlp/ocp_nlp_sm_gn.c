@@ -190,12 +190,12 @@ int_t ocp_nlp_sm_gn(const ocp_nlp_sm_in *sm_in, ocp_nlp_sm_out *sm_out,
     const int_t *nu = sm_in->nu;
     const int_t *ng = sm_in->ng;
 
-    real_t **hess_l = (real_t **)sm_out->hess_l;
-    real_t **grad_f = (real_t **)sm_out->grad_f;
-    real_t **jac_h = (real_t **)sm_out->jac_h;
-    real_t **jac_g = (real_t **)sm_out->jac_g;
-    real_t **h = (real_t **)sm_out->h;
-    real_t **g = (real_t **)sm_out->g;
+    real_t **hess_l = sm_out->hess_l;
+    real_t **grad_f = sm_out->grad_f;
+    real_t **jac_h = sm_out->jac_h;
+    real_t **jac_g = sm_out->jac_g;
+    real_t **h = sm_out->h;
+    real_t **g = sm_out->g;
 
     sim_solver **sim = sm_in->sim;
     ocp_nlp_ls_cost **ls_cost = (ocp_nlp_ls_cost **) sm_in->cost;
@@ -313,20 +313,28 @@ void ocp_nlp_sm_gn_initialize(const ocp_nlp_sm_in *sm_in, void *args_,
         ls_cost[i]->fun->in->x = sm_in->x[i];
         ls_cost[i]->fun->in->u = sm_in->u[i];
         ls_cost[i]->fun->in->p = NULL;  // TODO(nielsvd): support for parameters
+        ls_cost[i]->fun->in->lag = NULL;  // GN is a completely primal sensitivity method
         ls_cost[i]->fun->out->y = (*work)->F[i];
         ls_cost[i]->fun->out->jac_y = (*work)->DF[i];
-        ls_cost[i]->fun->in->compute_jac = true;
-        ls_cost[i]->fun->in->compute_hess = false;
+        ls_cost[i]->fun->in->compute_y = false;
+        ls_cost[i]->fun->in->compute_jac_y = true;
+        ls_cost[i]->fun->in->compute_hess_y = false;
+        ls_cost[i]->fun->in->compute_grad_adj = false;
+        ls_cost[i]->fun->in->compute_hess_adj = false;
 
         if (sm_in->ng[i] > 0) {
             // assign correct pointers to path_constraints-array
             path_constraints[i]->in->x = sm_in->x[i];
             path_constraints[i]->in->u = sm_in->u[i];
             path_constraints[i]->in->p = NULL;  // TODO(nielsvd): support for parameters
+            path_constraints[i]->in->lag = NULL;  // GN is a completely primal sensitivity method
             path_constraints[i]->out->y = (*work)->G[i];
             path_constraints[i]->out->jac_y = (*work)->DG[i];
-            path_constraints[i]->in->compute_jac = true;
-            path_constraints[i]->in->compute_hess = false;
+            path_constraints[i]->in->compute_y = true;
+            path_constraints[i]->in->compute_jac_y = true;
+            path_constraints[i]->in->compute_hess_y = false;
+            path_constraints[i]->in->compute_grad_adj = false;
+            path_constraints[i]->in->compute_hess_adj = false;
         }
     }
 }

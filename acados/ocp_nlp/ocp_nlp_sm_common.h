@@ -62,15 +62,15 @@ typedef struct {
 } ocp_nlp_sm_in;
 
 typedef struct {
-    const real_t **hess_l;  // TODO(nielsvd): Hessians of stage-wise
-                            // Lagrangians, document precise definition.
-    const real_t **grad_f;  // Gradients of stage-wise cost terms.
-    const real_t **jac_h;   // TODO(niels): rename (maybe phi?). Jacobians of
-                            // stage-wise integration operator.
-    const real_t **jac_g;   // Jacobians of stage-wise path constraints.
-    const real_t **h;       // TODO(nielsvd): rename. Evaluation of stage-wise
-                            // integration operator.
-    const real_t **g;       // Evaluation of stage-wise path constraints.
+    real_t **hess_l;  // TODO(nielsvd): Hessians of stage-wise
+                      // Lagrangians, document precise definition.
+    real_t **grad_f;  // Gradients of stage-wise cost terms.
+    real_t **jac_h;   // TODO(niels): rename (maybe phi?). Jacobians of
+                      // stage-wise integration operator.
+    real_t **jac_g;   // Jacobians of stage-wise path constraints.
+    real_t **h;       // TODO(nielsvd): rename. Evaluation of stage-wise
+                      // integration operator.
+    real_t **g;       // Evaluation of stage-wise path constraints.
 } ocp_nlp_sm_out;
 
 // TODO(nielsvd): add sm_in and sm_out to struct

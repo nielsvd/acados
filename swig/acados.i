@@ -600,8 +600,11 @@ real_t *ocp_nlp_ls_cost_ls_cost_ref_get(ocp_nlp_ls_cost *ls_cost) {
 
         // Initialize casadi wrapper input
         nlp_function->in = (casadi_wrapper_in *)malloc(sizeof(casadi_wrapper_in));
-        nlp_function->in->compute_jac = true;
-        nlp_function->in->compute_hess = true;
+        nlp_function->in->compute_y = true;
+        nlp_function->in->compute_jac_y = true;
+        nlp_function->in->compute_hess_y = true;
+        nlp_function->in->compute_grad_adj = false;
+        nlp_function->in->compute_hess_adj = false;
 
         // Initialize casadi wrapper output
         nlp_function->out = (casadi_wrapper_out *)malloc(sizeof(casadi_wrapper_out));

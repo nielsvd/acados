@@ -28,20 +28,17 @@ extern "C" {
 #include "acados/utils/types.h"
 
 typedef struct {
-    bool freezeSens;
+    bool dummy;
 } ocp_nlp_sm_eh_args;
 
 typedef struct {
-    bool inexact_init;
+    bool dummy;
 } ocp_nlp_sm_eh_memory;
 
 typedef struct {
-    real_t **F;
-    real_t **DF;
-    real_t **DFT;
-    real_t **DFTW;
-    real_t **G;
-    real_t **DG;
+    real_t **grad_f;
+    real_t **hess_pi_f;
+    real_t **hess_lam_g;
 } ocp_nlp_sm_eh_workspace;
 
 ocp_nlp_sm_eh_args *ocp_nlp_sm_eh_create_arguments();

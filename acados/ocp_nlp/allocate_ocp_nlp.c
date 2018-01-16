@@ -202,8 +202,11 @@ void allocate_nlp_function(int_t nx, int_t nu, int_t ny, ocp_nlp_function **nlp_
     (*nlp_function)->np = 0;
     (*nlp_function)->ny = ny;
     (*nlp_function)->in = malloc(sizeof(casadi_wrapper_in));
-    (*nlp_function)->in->compute_jac = true;
-    (*nlp_function)->in->compute_hess = false;
+    (*nlp_function)->in->compute_y = true;
+    (*nlp_function)->in->compute_jac_y = true;
+    (*nlp_function)->in->compute_hess_y = false;
+    (*nlp_function)->in->compute_grad_adj = false;
+    (*nlp_function)->in->compute_hess_adj = false;
     (*nlp_function)->out = malloc(sizeof(casadi_wrapper_out));
     (*nlp_function)->args = casadi_wrapper_create_arguments();
 }
