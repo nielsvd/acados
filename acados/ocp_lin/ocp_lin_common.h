@@ -25,21 +25,10 @@ extern "C" {
 #endif
 
 #include "acados/sim/sim_common.h"
-#include "acados/utils/casadi_wrapper.h"
+#include "acados/utils/external_function.h"
 #include "acados/utils/types.h"
 
-typedef struct {
-    int_t nx;
-    int_t nu;
-    int_t np;
 
-    int_t ny;
-
-    external_function_in *in;
-    external_function_out *out;
-    void *args;
-    void *work;
-} ocp_nlp_function;
 
 typedef struct {
     int *nx;
@@ -55,11 +44,9 @@ typedef struct {
     int N;
 } ocp_lin_dims;
 
-typedef struct {
-    void *cost;
-    sim_solver_fcn_ptrs **sim;
-    ocp_nlp_function **path_constraints;
 
+
+typedef struct {
     const real_t **x;
     const real_t **u;
     const real_t **pi;
@@ -68,6 +55,8 @@ typedef struct {
     // TODO(nielsvd): should go, old interface
     bool freezeSens;
 } ocp_lin_in;
+
+
 
 typedef struct {
     const real_t **hess_l;  // TODO(nielsvd): Hessians of stage-wise
@@ -81,16 +70,20 @@ typedef struct {
     const real_t **g;       // Evaluation of stage-wise path constraints.
 } ocp_lin_out;
 
+
+
 typedef struct {
     int (*fun)(ocp_lin_in *qp_in, ocp_lin_out *qp_out, void *args, void *mem, void *work);
     int (*calculate_args_size)(ocp_lin_dims *dims, void *submodules_);
     void *(*assign_args)(ocp_lin_dims *dims, void *submodules_, void *raw_memory);
-    void *(*copy_args)(ocp_lin_dims *dims, void *raw_memory, void *source_);
     void (*initialize_default_args)(void *args);
     int (*calculate_memory_size)(ocp_lin_dims *dims, void *args);
     void *(*assign_memory)(ocp_lin_dims *dims, void *args, void *raw_memory);
     int (*calculate_workspace_size)(ocp_lin_dims *dims, void *args);
 } ocp_lin_method_fcn_ptrs;
+
+
+
 
 #ifdef __cplusplus
 } /* extern "C" */
