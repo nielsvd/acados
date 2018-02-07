@@ -26,19 +26,26 @@ extern "C" {
 #endif
 
 #include "acados/ocp_lin/ocp_lin_common.h"
+#include "acados/utils/external_function.h"
 
 
-
-typedef struct ocp_lin_gn_args_ {
-
+typedef struct {
+    
 } ocp_lin_gn_args;
 
 
 
-typedef struct ocp_lin_gn_memory_ {
+typedef struct {
 
 } ocp_lin_gn_memory;
 
+
+
+typedef struct {
+    external_function_fcn_ptrs **res;
+    external_function_fcn_ptrs **g;
+    sim_solver_fcn_ptrs **h;
+} ocp_lin_gn_submodules;
 
 
 //

@@ -33,12 +33,12 @@ extern "C" {
 typedef struct {
     int *nx;
     int *nu;
+    int *np;
     int *nb;  // nbx + nbu
     int *nbx;
     int *nbu;
     int *ng;  // number of general linear constraints
-    int *nh;  // number of path constraints - ONLY difference with ocp_qp_dims
-              // atm
+    int *nh;  // number of path constraints - ONLY difference with ocp_qp_dims atm
     int *ns;  // number of soft constraints
     int *num_stages;
     int N;
@@ -47,27 +47,25 @@ typedef struct {
 
 
 typedef struct {
-    const real_t **x;
-    const real_t **u;
-    const real_t **pi;
-    const real_t **lam;
-
-    // TODO(nielsvd): should go, old interface
-    bool freezeSens;
+    real_t **x;
+    real_t **u;
+    real_t **p;
+    real_t **pi;
+    real_t **lam;
 } ocp_lin_in;
 
 
 
 typedef struct {
-    const real_t **hess_l;  // TODO(nielsvd): Hessians of stage-wise
-                            // Lagrangians, document precise definition.
-    const real_t **grad_f;  // Gradients of stage-wise cost terms.
-    const real_t **jac_h;   // TODO(niels): rename (maybe phi?). Jacobians of
-                            // stage-wise integration operator.
-    const real_t **jac_g;   // Jacobians of stage-wise path constraints.
-    const real_t **h;       // TODO(nielsvd): rename. Evaluation of stage-wise
-                            // integration operator.
-    const real_t **g;       // Evaluation of stage-wise path constraints.
+    real_t **hess_l;      // TODO(nielsvd): Hessians of stage-wise
+                          // Lagrangians, document precise definition.
+    real_t **grad_f;      // Gradients of stage-wise cost terms.
+    real_t **jac_h;       // Jacobians of stage-wise integration operator.
+    real_t **jac_g;       // Jacobians of stage-wise path constraints.
+    real_t **grad_pi_h;   // Adjoint derivative of system dynamics
+    real_t **grad_lam_g;  // Adjoint derivative of path constraints
+    real_t **h;           // Evaluation of stage-wise integration operator.
+    real_t **g;           // Evaluation of stage-wise path constraints.
 } ocp_lin_out;
 
 
@@ -82,6 +80,21 @@ typedef struct {
     int (*calculate_workspace_size)(ocp_lin_dims *dims, void *args);
 } ocp_lin_method_fcn_ptrs;
 
+
+
+//
+int ocp_lin_dims_calculate_size(int N);
+//
+ocp_lin_dims *assign_ocp_lin_dims(int N, void *raw_memory);
+//
+int ocp_lin_in_calculate_size(ocp_lin_dims *dims);
+//
+ocp_lin_in *assign_ocp_lin_in(ocp_lin_dims *dims, void *raw_memory);
+//
+int ocp_lin_out_calculate_size(ocp_lin_dims *dims);
+//
+ocp_lin_out *assign_ocp_lin_out(ocp_lin_dims *dims, void *raw_memory);
+//
 
 
 
