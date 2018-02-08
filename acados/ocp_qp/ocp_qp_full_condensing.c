@@ -50,19 +50,43 @@ int ocp_qp_full_condensing_calculate_args_size(ocp_qp_dims *dims, void *submodul
 
 
 
-ocp_qp_full_condensing_args *ocp_qp_full_condensing_assign_args(ocp_qp_dims *dims, void *submodules_, void *raw_memory)
+ocp_qp_full_condensing_args *ocp_qp_full_condensing_assign_args(ocp_qp_dims *dims, void **submodules_, void *raw_memory)
 {
     char *c_ptr = (char *) raw_memory;
 
     ocp_qp_full_condensing_args *args = (ocp_qp_full_condensing_args *) c_ptr;
     c_ptr += sizeof(ocp_qp_full_condensing_args);
 
-    assert((char*)raw_memory + ocp_qp_full_condensing_calculate_args_size(dims, submodules_) == c_ptr);
+    assert((char*)raw_memory + ocp_qp_full_condensing_calculate_args_size(dims, *submodules_) == c_ptr);
+
+    // Update submodules pointer
+    *submodules_ = NULL;
 
     return args;
 }
 
 
+
+ocp_qp_full_condensing_args *ocp_qp_full_condensing_copy_args(ocp_qp_dims *dims, void *raw_memory, ocp_qp_full_condensing_args *source_)
+{
+    ocp_qp_full_condensing_args *dest;
+
+    void *submodules;
+
+    dest = ocp_qp_full_condensing_assign_args(dims, &submodules, raw_memory);
+
+    return dest;
+}
+
+
+
+void ocp_qp_full_condensing_initialize_default_args(ocp_qp_full_condensing_args *args) {
+	
+	// condense both Hessian and gradient by default
+	args->condense_rhs_only = 0;
+	// expand only primal solution (linear MPC, Gauss-Newton)
+	args->expand_primal_sol_only = 0;
+}
 
 int ocp_qp_full_condensing_calculate_memory_size(ocp_qp_dims *dims, ocp_qp_full_condensing_args *args)
 {
@@ -115,7 +139,23 @@ void ocp_qp_full_condensing(ocp_qp_in *in, dense_qp_in *out, ocp_qp_full_condens
     mem->qp_in = in;
 
     // convert to dense qp structure
-    d_cond_qp_ocp2dense(in, out, mem->hpipm_workspace);
+	if(args->condense_rhs_only == 1) {
+		// condense gradient only
+		d_cond_rhs_qp_ocp2dense(in, out, mem->hpipm_workspace);
+	} else {
+		// condense gradient and Hessian
+		d_cond_qp_ocp2dense(in, out, mem->hpipm_workspace);
+
+		// ++ for debugging ++
+		//
+		// printf("gradient with full condensing:\n\n"); 
+		// blasfeo_print_dvec(out->g->m, out->g, 0);
+
+		// d_cond_rhs_qp_ocp2dense(in, out, mem->hpipm_workspace);
+
+		// printf("gradient with gradient-only condensing:\n\n");	
+		// blasfeo_print_dvec(out->g->m, out->g, 0);
+	}
 }
 
 
@@ -123,5 +163,10 @@ void ocp_qp_full_condensing(ocp_qp_in *in, dense_qp_in *out, ocp_qp_full_condens
 void ocp_qp_full_expansion(dense_qp_out *in, ocp_qp_out *out, ocp_qp_full_condensing_args *args,
     ocp_qp_full_condensing_memory *mem, void *work)
 {
-    d_expand_sol_dense2ocp(mem->qp_in, in, out, mem->hpipm_workspace);
+	if(args->expand_primal_sol_only == 1) {
+		d_expand_primal_sol_dense2ocp(mem->qp_in, in, out, mem->hpipm_workspace);
+	} else {
+		d_expand_sol_dense2ocp(mem->qp_in, in, out, mem->hpipm_workspace);
+
+	}
 }

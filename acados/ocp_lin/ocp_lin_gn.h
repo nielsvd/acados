@@ -51,7 +51,9 @@ typedef struct {
 //
 int ocp_lin_gn_calculate_args_size(ocp_lin_dims *dims, void *submodules_);
 //
-void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void *submodules_, void *raw_memory);
+void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void **submodules_, void *raw_memory);
+//
+void *ocp_lin_gn_copy_args(ocp_lin_dims *dims, void *raw_memory, void *source_);
 //
 void ocp_lin_gn_initialize_default_args(void *args_);
 //

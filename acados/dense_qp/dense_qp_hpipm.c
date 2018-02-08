@@ -43,7 +43,7 @@ int dense_qp_hpipm_calculate_args_size(dense_qp_dims *dims, void *submodules_)
 
 
 
-void *dense_qp_hpipm_assign_args(dense_qp_dims *dims, void *submodules_, void *raw_memory)
+void *dense_qp_hpipm_assign_args(dense_qp_dims *dims, void **submodules_, void *raw_memory)
 {
     dense_qp_hpipm_args *args;
 
@@ -60,9 +60,28 @@ void *dense_qp_hpipm_assign_args(dense_qp_dims *dims, void *submodules_, void *r
     d_create_dense_qp_ipm_arg(dims, args->hpipm_args, c_ptr);
     c_ptr += d_memsize_dense_qp_ipm_arg(dims);
 
-    assert((char*)raw_memory + dense_qp_hpipm_calculate_args_size(dims, submodules_) == c_ptr);
+    assert((char*)raw_memory + dense_qp_hpipm_calculate_args_size(dims, *submodules_) == c_ptr);
+
+    // Update submodules pointer
+    *submodules_ = NULL;
 
     return (void *)args;
+}
+
+
+
+void *dense_qp_hpipm_copy_args(dense_qp_dims *dims, void *raw_memory, void *source_)
+{
+    dense_qp_hpipm_args *source = (dense_qp_hpipm_args *)source_;
+    dense_qp_hpipm_args *dest;
+
+    void *submodules;
+
+    dest = (dense_qp_hpipm_args *) dense_qp_hpipm_assign_args(dims, &submodules, raw_memory);
+
+    *dest->hpipm_args = *source->hpipm_args;
+
+    return (void *)dest;
 }
 
 
@@ -141,43 +160,24 @@ int dense_qp_hpipm(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *
     acados_timer tot_timer, qp_timer, interface_timer;
 
     acados_tic(&tot_timer);
-    acados_tic(&interface_timer);
 
     // cast structures
     dense_qp_hpipm_args *args = (dense_qp_hpipm_args *) args_;
     dense_qp_hpipm_memory *memory = (dense_qp_hpipm_memory *) mem_;
 
-    info->interface_time = acados_toc(&interface_timer);
-    acados_tic(&qp_timer);
-
     // solve ipm
-    int acados_status = ACADOS_SUCCESS;
+    acados_tic(&qp_timer);
     int hpipm_status = d_solve_dense_qp_ipm(qp_in, qp_out, args->hpipm_args, memory->hpipm_workspace);
 
     info->solve_QP_time = acados_toc(&qp_timer);
+    info->interface_time = 0;  // there are no conversions for hpipm
     info->total_time = acados_toc(&tot_timer);
     info->num_iter = memory->hpipm_workspace->iter;
-#if 0
-    int nvd = qp_in->dim->nv;
-    int ned = qp_in->dim->ne;
-    int ngd = qp_in->dim->ng;
-    int nbd = qp_in->dim->nb;
-    printf("ngd=%d nvd=%d\n", ngd, nvd);
-    printf("H:\n"); blasfeo_print_dmat(nvd,nvd,qp_in->Hv,0,0);
-    printf("C':\n"); blasfeo_print_dmat(ngd,nvd,qp_in->Ct,0,0);
-    printf("d_lg:\n"); blasfeo_print_tran_dvec(ngd,qp_in->d,nbd);
-    printf("d_ug:\n"); blasfeo_print_tran_dvec(ngd,qp_in->d,2*nbd+ngd);
-    printf("d_lb:\n"); blasfeo_print_tran_dvec(ngd,qp_in->d,0);
-    printf("d_ub:\n"); blasfeo_print_tran_dvec(ngd,qp_in->d,nbd+ngd);
-    printf("primal:\n"); blasfeo_print_tran_dvec(nvd,qp_out->v,0);
-    printf("dual:\n"); blasfeo_print_tran_dvec(2*nbd+2*ngd,qp_out->lam,0);
-    exit(1);
-#endif
 
-    // check max number of iterations
-    // TODO(dimitris): check ACADOS_MIN_STEP (not implemented in HPIPM yet)
+    // check exit conditions
+    int acados_status = hpipm_status;
+    if (hpipm_status == 0) acados_status = ACADOS_SUCCESS;
     if (hpipm_status == 1) acados_status = ACADOS_MAXITER;
-
-    // return
+    if (hpipm_status == 2) acados_status = ACADOS_MINSTEP;
     return acados_status;
 }

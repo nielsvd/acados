@@ -121,7 +121,9 @@ int main() {
         ocp_qp_solver_config config;
         config.qp_solver = ocp_qp_solvers[ii];
 
-        void *args = ocp_qp_create_args(&config, qp_dims);
+        ocp_qp_solver_fcn_ptrs *fcn_ptrs = create_ocp_qp_solver_fcn_ptrs(&config, qp_dims);
+
+        void *args = ocp_qp_create_args(fcn_ptrs, qp_dims);
 
         for (int jj = 0; jj < num_N2_values; jj++)
         {
@@ -198,7 +200,7 @@ int main() {
                     break;
             }
 
-            ocp_qp_solver *qp_solver = ocp_qp_create(&config, qp_dims, args);
+            ocp_qp_solver *qp_solver = ocp_qp_create(fcn_ptrs, qp_dims, args);
 
             int acados_return = 0;
 
@@ -280,6 +282,7 @@ int main() {
             // if (config.qp_solver >= FULL_CONDENSING_HPIPM) break;
         }
         free(args);
+        free(fcn_ptrs);
     }
 
     free(qp_in);
