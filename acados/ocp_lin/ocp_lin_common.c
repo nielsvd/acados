@@ -121,43 +121,17 @@ int ocp_lin_in_calculate_size(ocp_lin_dims *dims)
 
 ocp_lin_in *assign_ocp_lin_in(ocp_lin_dims *dims, void *raw_memory)
 {
-    int size = sizeof(ocp_lin_in);
-    int N = dims->N;
-
     // x
-    size += (N+1)*sizeof(double *);
-    for (int i=0;i<=N;i++)
-    {
-        size += dims->nx[i] * sizeof(double);
-    }
 
     // u
-    size += (N+1)*sizeof(double *);
-    for (int i=0;i<=N;i++)
-    {
-        size += dims->nu[i] * sizeof(double);
-    }
 
     // p
-    size += (N+1)*sizeof(double *);
-    for (int i=0;i<=N;i++)
-    {
-        size += dims->np[i] * sizeof(double);
-    }
 
     // pi
-    size += N*sizeof(double *);
-    for (int i=0;i<N;i++)
-    {
-        size += dims->nx[i+1] * sizeof(double);
-    }
-
+ 
     // lam
-    size += (N+1)*sizeof(double *);
-    for (int i=0;i<=N;i++)
-    {
-        size += dims->nh[i] * sizeof(double);
-    }
+
+    return NULL;
 }
 
 
@@ -235,5 +209,21 @@ int ocp_lin_out_calculate_size(ocp_lin_dims *dims)
 
 ocp_lin_out *assign_ocp_lin_out(ocp_lin_dims *dims, void *raw_memory)
 {
+    // hess_l
+
+    // grad_f
+
+    // jac_xp
+
+    // jac_h
+
+    // grad_pi_xp
+
+    // grad_lam_h
+
+    // xp
+
+    // h
+    
     return NULL;
 }

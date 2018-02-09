@@ -23,53 +23,390 @@
 
 
 
+#define LS_RES_NUMIN 3
+#define LS_RES_NUMOUT 2
+#define H_NUMIN 3
+#define H_NUMOUT 2
+
+
+
+int ocp_lin_gn_ls_res_input_dims[LS_RES_NUMIN] = {0};
+int ocp_lin_gn_ls_res_output_dims[LS_RES_NUMOUT] = {0};
+external_function_dims ocp_lin_gn_ls_res_dims = {
+    LS_RES_NUMIN,
+    LS_RES_NUMOUT,
+    ocp_lin_gn_ls_res_input_dims,
+    ocp_lin_gn_ls_res_output_dims
+};
+
+
+
+int ocp_lin_gn_h_input_dims[H_NUMIN] = {0};
+int ocp_lin_gn_h_output_dims[H_NUMOUT] = {0};
+external_function_dims ocp_lin_gn_h_dims = {
+    H_NUMIN,
+    H_NUMOUT,
+    ocp_lin_gn_h_input_dims,
+    ocp_lin_gn_h_output_dims
+};
+
+
+
 int ocp_lin_gn_calculate_args_size(ocp_lin_dims *dims, void *submodules_)
 {
-    return 0;
+    ocp_lin_gn_submodules *submodules = (ocp_lin_gn_submodules *) submodules_;
+    
+    int N = dims->N;
+
+    int size = 0;
+
+    size += 2*(N+1)*sizeof(external_function_fcn_ptrs);
+
+    for (int i=0;i<=N;i++)
+    {
+        if (submodules->ls_res[i] != NULL)
+        {
+            size += submodules->ls_res[i]->calculate_args_size(&ocp_lin_gn_ls_res_dims, submodules->ls_res[i]->submodules);
+        }
+    
+        if (submodules->h != NULL) 
+        {
+            size += submodules->h[i]->calculate_args_size(&ocp_lin_gn_h_dims, submodules->h[i]->submodules);
+        }
+    }
+
+    size += N*sizeof(sim_solver_fcn_ptrs);
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+     
+        size += submodules->xp[i]->calculate_args_size(&sdi, submodules->xp[i]->submodules);
+    }
+
+    return size;
 }
 
 
 
 void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void **submodules_, void *raw_memory)
 {
-    return NULL;
+    ocp_lin_gn_submodules *submodules = (ocp_lin_gn_submodules *) *submodules_;
+
+    int N = dims->N;
+
+    char *c_ptr = (char *) raw_memory;
+
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) c_ptr;
+    c_ptr += sizeof(ocp_lin_gn_args);
+
+    args->submodules.ls_res = (external_function_fcn_ptrs **) c_ptr;
+    c_ptr += (N+1) * sizeof(external_function_fcn_ptrs *);
+
+    args->submodules.h = (external_function_fcn_ptrs **) c_ptr;
+    c_ptr += (N + 1) * sizeof(external_function_fcn_ptrs *);
+
+    for (int i=0;i<=N;i++)
+    {
+        if (submodules->ls_res[i] != NULL)
+        {
+            args->submodules.ls_res[i] = (external_function_fcn_ptrs *) c_ptr;
+            c_ptr += sizeof(external_function_fcn_ptrs);
+
+            void *ls_res_submodules = submodules->ls_res[i]->submodules;
+            args->ls_res_args[i] = submodules->ls_res[i]->assign_args(&ocp_lin_gn_ls_res_dims, &(ls_res_submodules), c_ptr);
+            c_ptr += submodules->ls_res[i]->calculate_args_size(&ocp_lin_gn_ls_res_dims, submodules->ls_res[i]->submodules);
+
+            *(args->submodules.ls_res[i]) = *(submodules->ls_res[i]);
+            args->submodules.ls_res[i]->submodules = ls_res_submodules;
+        }
+        else
+        {
+            args->submodules.ls_res[i] = NULL;
+        }
+
+        if (submodules->h[i] != NULL)
+        {
+            args->submodules.h[i] = (external_function_fcn_ptrs *) c_ptr;
+            c_ptr += sizeof(external_function_fcn_ptrs);
+
+            void *h_submodules = submodules->h[i]->submodules;
+            args->h_args[i] = submodules->h[i]->assign_args(&ocp_lin_gn_h_dims, &(h_submodules), c_ptr);
+            c_ptr += submodules->h[i]->calculate_args_size(&ocp_lin_gn_h_dims, submodules->h[i]->submodules);
+
+            *(args->submodules.h[i]) = *(submodules->h[i]);
+            args->submodules.h[i]->submodules = h_submodules;
+        }
+        else
+        {
+            args->submodules.h[i] = NULL;
+        }
+    }
+
+    args->submodules.xp = (sim_solver_fcn_ptrs **) c_ptr;
+    c_ptr += N * sizeof(sim_solver_fcn_ptrs *);
+
+    for (int i=0;i<N;i++)
+    {
+        args->submodules.xp[i] = (sim_solver_fcn_ptrs *) c_ptr;
+        c_ptr += sizeof(sim_solver_fcn_ptrs);
+
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        void *xp_submodules = submodules->xp[i]->submodules;
+        args->xp_args[i] = submodules->xp[i]->assign_args(&sdi, &xp_submodules, c_ptr);
+        c_ptr += submodules->xp[i]->calculate_args_size(&sdi, submodules->xp[i]->submodules);
+
+        *(args->submodules.xp[i]) = *(submodules->xp[i]);
+        args->submodules.xp[i] = xp_submodules;
+    }
+
+    assert((char*)raw_memory + ocp_lin_gn_calculate_args_size(dims, *submodules_) >= c_ptr);
+
+    // Update submodules pointer
+    *submodules_ = (void *)&(args->submodules);
+
+    return (void *)args;
 }
 
 
 
 void *ocp_lin_gn_copy_args(ocp_lin_dims *dims, void *raw_memory, void *source_)
 {
-    
+    ocp_lin_gn_args *source = (ocp_lin_gn_args *) source_;
+    ocp_lin_gn_args *dest;
+
+    int N = dims->N;
+
+    for (int i=0;i<=N;i++)
+    {
+        source->submodules.ls_res[i]->copy_args(&ocp_lin_gn_ls_res_dims, dest->ls_res_args[i], source->ls_res_args[i]);
+        source->submodules.h[i]->copy_args(&ocp_lin_gn_h_dims, dest->h_args[i], source->h_args[i]);
+    }
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        source->submodules.xp[i]->copy_args(&sdi, dest->xp_args[i], source->xp_args[i]);
+    }
+
+    return (void *)dest;
 }
 
 
 
-void ocp_lin_gn_initialize_default_args(void *args_)
+void ocp_lin_gn_initialize_default_args(ocp_lin_dims *dims, void *args_)
 {
-    return NULL;
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+
+    int N = dims->N;
+
+    for (int i=0;i<=N;i++)
+    {
+        args->submodules.ls_res[i]->initialize_default_args(args->ls_res_args[i]);
+        args->submodules.h[i]->initialize_default_args(args->h_args[i]);
+    }
+
+    for (int i=0;i<N;i++)
+    {
+        args->submodules.ls_res[i]->initialize_default_args(args->ls_res_args[i]);
+    }
 }
 
 
 
 int ocp_lin_gn_calculate_memory_size(ocp_lin_dims *dims, void *args_)
 {
-    return 0;
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+
+    int N = dims->N;
+
+    int size = sizeof(ocp_lin_gn_memory);
+
+    size += 2*(N+1)*sizeof(void *);
+
+    for (int i=0;i<=N;i++)
+    {
+        size += args->submodules.ls_res[i]->calculate_memory_size(&ocp_lin_gn_ls_res_dims, args->ls_res_args[i]);
+        size += args->submodules.h[i]->calculate_memory_size(&ocp_lin_gn_h_dims, args->h_args[i]);
+    }
+
+    size += N*sizeof(void *);
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        size += args->submodules.xp[i]->calculate_memory_size(&sdi, args->xp_args[i]);
+    }
+
+    make_int_multiple_of(8, &size);
+    size += 1 * 8;
+
+    return size;
 }
 
 
 
 void *ocp_lin_gn_assign_memory(ocp_lin_dims *dims, void *args_, void *raw_memory)
 {
-    return NULL;
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+
+    ocp_lin_gn_memory *mem;
+
+    int N = dims->N;
+
+    char *c_ptr = (char *) raw_memory;
+
+    mem = (ocp_lin_gn_memory *) c_ptr;
+    c_ptr += sizeof(ocp_lin_gn_memory);
+
+    mem->ls_res_mem = (void **) c_ptr;
+    c_ptr += (N+1) * sizeof(void *);
+
+    mem->h_mem = (void **) c_ptr;
+    c_ptr += (N+1) * sizeof(void *);
+
+    for (int i=0;i<=N;i++)
+    {
+        mem->ls_res_mem[i] = args->submodules.ls_res[i]->assign_memory(&ocp_lin_gn_ls_res_dims, args->ls_res_args[i], c_ptr);
+        c_ptr += args->submodules.ls_res[i]->calculate_memory_size(&ocp_lin_gn_ls_res_dims, args->ls_res_args[i]);
+
+        mem->h_mem[i] = args->submodules.h[i]->assign_memory(&ocp_lin_gn_h_dims, args->h_args[i], c_ptr);
+        c_ptr += args->submodules.h[i]->calculate_memory_size(&ocp_lin_gn_h_dims, args->h_args);
+    }
+
+    mem->xp_mem = (void **) c_ptr;
+    c_ptr += N * sizeof(void *);
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        mem->xp_mem[i] = args->submodules.xp[i]->assign_memory(&sdi, args->xp_args[i], c_ptr);
+        c_ptr += args->submodules.xp[i]->calculate_memory_size(&sdi, args->xp_args[i]);
+    }
+
+    align_char_to(8, &c_ptr);
+
+    assert((size_t)c_ptr % 8 == 0 && "memory not 8-byte aligned!");
+
+    assert((char*)raw_memory + ocp_lin_gn_calculate_memory_size(dims, args_) >= c_ptr);
+
+    return (void *)mem;
 }
 
 
 
 int ocp_lin_gn_calculate_workspace_size(ocp_lin_dims *dims, void *args_)
 {
-    return 0;
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+
+    int N = dims->N;
+
+    int size = sizeof(ocp_lin_gn_workspace);
+
+    size += 2*(N+1)*sizeof(void *);
+
+    for (int i=0;i<=N;i++)
+    {
+        size += args->submodules.ls_res[i]->calculate_workspace_size(&ocp_lin_gn_ls_res_dims, args->ls_res_args[i]);
+        size += args->submodules.h[i]->calculate_workspace_size(&ocp_lin_gn_h_dims, args->h_args[i]);
+    }
+
+    size += N*sizeof(void *);
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        size += args->submodules.xp[i]->calculate_workspace_size(&sdi, args->xp_args[i]);
+    }
+
+    make_int_multiple_of(8, &size);
+    size += 1 * 8;
+
+    return size;
 }
 
+
+
+static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
+{
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+
+    ocp_lin_gn_workspace *work;
+
+    int N = dims->N;
+
+    char *c_ptr = (char *) raw_memory;
+
+    work = (ocp_lin_gn_workspace *) c_ptr;
+    c_ptr += sizeof(ocp_lin_gn_workspace);
+
+    work->ls_res_work = (void **) c_ptr;
+    c_ptr += (N+1) * sizeof(void *);
+
+    work->h_work = (void **) c_ptr;
+    c_ptr += (N+1) * sizeof(void *);
+
+    for (int i=0;i<=N;i++)
+    {
+        work->ls_res_work[i] = (void *) c_ptr;
+        c_ptr += args->submodules.ls_res[i]->calculate_workspace_size(&ocp_lin_gn_ls_res_dims, args->ls_res_args[i]);
+
+        work->h_work[i] = (void *) c_ptr;
+        c_ptr += args->submodules.h[i]->calculate_workspace_size(&ocp_lin_gn_h_dims, args->h_args);
+    }
+
+    work->xp_work = (void **) c_ptr;
+    c_ptr += N * sizeof(void *);
+
+    for (int i=0;i<N;i++)
+    {
+        sim_dims sdi;
+        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.nx = dims->nx[i];
+        sdi.nu = dims->nu[i];
+        sdi.np = dims->np[i];
+
+        work->xp_work[i] = (void *) c_ptr;
+        c_ptr += args->submodules.xp[i]->calculate_workspace_size(&sdi, args->xp_args[i]);
+    }
+
+    align_char_to(8, &c_ptr);
+
+    assert((size_t)c_ptr % 8 == 0 && "memory not 8-byte aligned!");
+
+    assert((char*)raw_memory + ocp_lin_gn_calculate_workspace_size(dims, args_) >= c_ptr);
+
+    return (void *)work;
+}
 
 
 int ocp_lin_gn(ocp_lin_in *qp_in, ocp_lin_out *qp_out, void *args_, void *memory_, void *work_)

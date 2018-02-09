@@ -26,26 +26,43 @@ extern "C" {
 #endif
 
 #include "acados/ocp_lin/ocp_lin_common.h"
+#include "acados/sim/sim_common.h"
 #include "acados/utils/external_function.h"
 
 
+
 typedef struct {
+    external_function_fcn_ptrs **ls_res;
+    external_function_fcn_ptrs **h;
+    sim_solver_fcn_ptrs **xp;
+} ocp_lin_gn_submodules;
+
+
+
+typedef struct {
+    ocp_lin_gn_submodules submodules;
     
+    void **ls_res_args;
+    void **h_args;
+    void **xp_args;
 } ocp_lin_gn_args;
 
 
 
 typedef struct {
-
+    void **ls_res_mem;
+    void **h_mem;
+    void **xp_mem;
 } ocp_lin_gn_memory;
 
 
 
 typedef struct {
-    external_function_fcn_ptrs **res;
-    external_function_fcn_ptrs **g;
-    sim_solver_fcn_ptrs **h;
-} ocp_lin_gn_submodules;
+    void **ls_res_work;
+    void **h_work;
+    void **xp_work;
+} ocp_lin_gn_workspace;
+
 
 
 //
@@ -55,7 +72,7 @@ void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void **submodules_, void *raw_m
 //
 void *ocp_lin_gn_copy_args(ocp_lin_dims *dims, void *raw_memory, void *source_);
 //
-void ocp_lin_gn_initialize_default_args(void *args_);
+void ocp_lin_gn_initialize_default_args(ocp_lin_dims *dims, void *args_);
 //
 int ocp_lin_gn_calculate_memory_size(ocp_lin_dims *dims, void *args_);
 //

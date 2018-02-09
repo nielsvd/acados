@@ -75,7 +75,7 @@ typedef struct {
     int (*calculate_args_size)(ocp_lin_dims *dims, void *submodules);
     void *(*assign_args)(ocp_lin_dims *dims, void **submodules, void *raw_memory);
     void *(*copy_args)(ocp_lin_dims *dims, void *raw_memory, void *source);
-    void (*initialize_default_args)(void *args);
+    void (*initialize_default_args)(ocp_lin_dims *dims, void *args);
     int (*calculate_memory_size)(ocp_lin_dims *dims, void *args);
     void *(*assign_memory)(ocp_lin_dims *dims, void *args, void *raw_memory);
     int (*calculate_workspace_size)(ocp_lin_dims *dims, void *args);
