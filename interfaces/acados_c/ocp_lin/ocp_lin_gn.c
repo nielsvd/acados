@@ -17,62 +17,18 @@
  *
  */
 
-#include "acados/ocp_lin/ocp_lin_gn.h"
-
-#include <stdlib.h>
+#include "acados_c/ocp_lin/ocp_lin_gn.h"
 
 
 
-int ocp_lin_gn_calculate_args_size(ocp_lin_dims *dims, void *submodules_)
+int ocp_lin_gn_calculate_submodules_size(ocp_lin_method_config *config, ocp_lin_dims *dims)
 {
     return 0;
 }
 
 
 
-void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void **submodules_, void *raw_memory)
+void *ocp_lin_gn_assign_submodules(ocp_lin_method_config *config, ocp_lin_dims *dims, void *raw_memory)
 {
     return NULL;
-}
-
-
-
-void *ocp_lin_gn_copy_args(ocp_lin_dims *dims, void *raw_memory, void *source_)
-{
-    
-}
-
-
-
-void ocp_lin_gn_initialize_default_args(void *args_)
-{
-    return NULL;
-}
-
-
-
-int ocp_lin_gn_calculate_memory_size(ocp_lin_dims *dims, void *args_)
-{
-    return 0;
-}
-
-
-
-void *ocp_lin_gn_assign_memory(ocp_lin_dims *dims, void *args_, void *raw_memory)
-{
-    return NULL;
-}
-
-
-
-int ocp_lin_gn_calculate_workspace_size(ocp_lin_dims *dims, void *args_)
-{
-    return 0;
-}
-
-
-
-int ocp_lin_gn(ocp_lin_in *qp_in, ocp_lin_out *qp_out, void *args_, void *memory_, void *work_)
-{
-    return 0;
 }

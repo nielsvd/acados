@@ -57,15 +57,15 @@ typedef struct {
 
 
 typedef struct {
-    real_t **hess_l;      // TODO(nielsvd): Hessians of stage-wise
-                          // Lagrangians, document precise definition.
-    real_t **grad_f;      // Gradients of stage-wise cost terms.
-    real_t **jac_h;       // Jacobians of stage-wise integration operator.
-    real_t **jac_g;       // Jacobians of stage-wise path constraints.
-    real_t **grad_pi_h;   // Adjoint derivative of system dynamics
-    real_t **grad_lam_g;  // Adjoint derivative of path constraints
-    real_t **h;           // Evaluation of stage-wise integration operator.
-    real_t **g;           // Evaluation of stage-wise path constraints.
+    real_t **hess_l;       // TODO(nielsvd): Hessians of stage-wise
+                           // Lagrangians, document precise definition.
+    real_t **grad_f;       // Gradients of stage-wise cost terms.
+    real_t **jac_xp;       // Jacobians of stage-wise integration operator.
+    real_t **jac_h;        // Jacobians of stage-wise path constraints.
+    real_t **grad_pi_xp;   // Adjoint derivative of system dynamics
+    real_t **grad_lam_h;   // Adjoint derivative of path constraints
+    real_t **xp;           // Evaluation of stage-wise integration operator.
+    real_t **h;            // Evaluation of stage-wise path constraints.
 } ocp_lin_out;
 
 

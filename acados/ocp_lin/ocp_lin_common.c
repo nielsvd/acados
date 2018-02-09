@@ -82,30 +82,153 @@ int ocp_lin_in_calculate_size(ocp_lin_dims *dims)
     int N = dims->N;
 
     // x
-    size += (N+1) * sizeof(double *);
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nx[i] * sizeof(double);
+    }
 
     // u
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nu[i] * sizeof(double);
+    }
 
     // p
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->np[i] * sizeof(double);
+    }
 
     // pi
+    size += N*sizeof(double *);
+    for (int i=0;i<N;i++)
+    {
+        size += dims->nx[i+1] * sizeof(double);
+    }
 
     // lam
-
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nh[i] * sizeof(double);
+    }
 }
 
 
 
 ocp_lin_in *assign_ocp_lin_in(ocp_lin_dims *dims, void *raw_memory)
 {
-    return NULL;
+    int size = sizeof(ocp_lin_in);
+    int N = dims->N;
+
+    // x
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nx[i] * sizeof(double);
+    }
+
+    // u
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nu[i] * sizeof(double);
+    }
+
+    // p
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->np[i] * sizeof(double);
+    }
+
+    // pi
+    size += N*sizeof(double *);
+    for (int i=0;i<N;i++)
+    {
+        size += dims->nx[i+1] * sizeof(double);
+    }
+
+    // lam
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nh[i] * sizeof(double);
+    }
 }
 
 
 
 int ocp_lin_out_calculate_size(ocp_lin_dims *dims)
 {
-    return 0;
+    int size = sizeof(ocp_lin_out);
+    int N = dims->N;
+
+    // hess_l
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i]+dims->nu[i];
+        size += nxu*nxu * sizeof(double);
+    }
+
+    // grad_f
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i]+dims->nu[i];
+        size += nxu * sizeof(double);
+    }
+
+    // jac_xp
+    size += N*sizeof(double *);
+    for (int i=0;i<N;i++)
+    {
+        int nxu = dims->nx[i]+dims->nu[i];
+        size += dims->nx[i+1]*nxu * sizeof(double);
+    }
+
+    // jac_h
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        int nhg = dims->nh[i]+dims->ng[i];
+        int nxu = dims->nx[i]+dims->nu[i];
+        size += nhg*nxu * sizeof(double);
+    }
+
+    // grad_pi_xp
+    size += N*sizeof(double *);
+    for (int i=0;i<N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        size += nxu * sizeof(double);
+    }
+
+    // grad_lam_h
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        size += nxu * sizeof(double);
+    }
+
+    // xp
+    size += N*sizeof(double *);
+    for (int i=0;i<N;i++)
+    {
+        size += dims->nx[i+1] * sizeof(double);
+    }
+
+    // h
+    size += (N+1)*sizeof(double *);
+    for (int i=0;i<=N;i++)
+    {
+        size += dims->nh[i] * sizeof(double);
+    }
 }
 
 

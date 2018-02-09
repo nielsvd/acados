@@ -20,6 +20,9 @@ OBJS += acados/dense_qp/dense_qp_qpoases.o
 ifeq ($(ACADOS_WITH_QORE), 1)
 OBJS += acados/dense_qp/dense_qp_qore.o
 endif
+# ocp lin
+OBJS += acados/ocp_lin/ocp_lin_common.o
+OBJS += acados/ocp_lin/ocp_lin_gn.o
 # ocp qp
 OBJS += acados/ocp_qp/ocp_qp_common.o
 OBJS += acados/ocp_qp/ocp_qp_common_frontend.o
@@ -134,14 +137,14 @@ acados_c_static: acados_static
 	( cd interfaces/acados_c; $(MAKE) static_library CC=$(CC) TOP=$(TOP) )
 	mkdir -p include/acados_c
 	mkdir -p include/acados_c/dense_qp
-	# mkdir -p include/acados_c/ocp_lin
+	mkdir -p include/acados_c/ocp_lin
 	# mkdir -p include/acados_c/ocp_nlp
 	mkdir -p include/acados_c/ocp_qp
 	mkdir -p include/acados_c/sim
 	mkdir -p lib
 	cp -r interfaces/acados_c/*.h include/acados_c
 	cp -r interfaces/acados_c/dense_qp/*.h include/acados_c/dense_qp
-	# cp -r interfaces/acados_c/ocp_lin/*.h include/acados_c/ocp_lin
+	cp -r interfaces/acados_c/ocp_lin/*.h include/acados_c/ocp_lin
 	# cp -r interfaces/acados_c/ocp_nlp/*.h include/acados_c/ocp_nlp
 	cp -r interfaces/acados_c/ocp_qp/*.h include/acados_c/ocp_qp
 	cp -r interfaces/acados_c/sim/*.h include/acados_c/sim
