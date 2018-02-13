@@ -115,23 +115,63 @@ int ocp_lin_in_calculate_size(ocp_lin_dims *dims)
     {
         size += dims->nh[i] * sizeof(double);
     }
+
+    size += 1*8;
+
+    return size;
 }
 
 
 
 ocp_lin_in *assign_ocp_lin_in(ocp_lin_dims *dims, void *raw_memory)
 {
+    char *c_ptr = (char *)raw_memory;
+
+    int N = dims->N;
+
+    ocp_lin_in *in = (ocp_lin_in *)c_ptr;
+    c_ptr += sizeof(ocp_lin_in);
+
+    align_char_to(8, &c_ptr);
+
     // x
+    assign_double_ptrs(N+1, &in->x, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->nx[i], &in->x[i], &c_ptr);
+    }
 
     // u
+    assign_double_ptrs(N+1, &in->u, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->nu[i], &in->u[i], &c_ptr);
+    }
 
     // p
+    assign_double_ptrs(N+1, &in->p, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->np[i], &in->p[i], &c_ptr);
+    }
 
     // pi
+    assign_double_ptrs(N, &in->pi, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        assign_double(dims->nx[i+1], &in->pi[i], &c_ptr);
+    }
  
     // lam
+    assign_double_ptrs(N+1, &in->lam, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->nh[i], &in->lam[i], &c_ptr);
+    }
 
-    return NULL;
+    assert((char*)raw_memory + ocp_lin_in_calculate_size(dims) >= c_ptr);
+
+    return in;
 }
 
 
@@ -203,27 +243,89 @@ int ocp_lin_out_calculate_size(ocp_lin_dims *dims)
     {
         size += dims->nh[i] * sizeof(double);
     }
+
+    size += 1*8;
+
+    return size;
 }
 
 
 
 ocp_lin_out *assign_ocp_lin_out(ocp_lin_dims *dims, void *raw_memory)
 {
+    char *c_ptr = (char *)raw_memory;
+
+    int N = dims->N;
+
+    ocp_lin_out *out = (ocp_lin_out *)c_ptr;
+    c_ptr += sizeof(ocp_lin_out);
+
+    align_char_to(8, &c_ptr);
+
     // hess_l
+    assign_double_ptrs(N+1, &out->hess_l, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nxu*nxu, &out->hess_l[i], &c_ptr);
+    }
 
     // grad_f
+    assign_double_ptrs(N+1, &out->grad_f, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nxu, &out->grad_f[i], &c_ptr);
+    }
 
     // jac_xp
+    assign_double_ptrs(N, &out->jac_xp, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(dims->nx[i+1]*nxu, &out->jac_xp[i], &c_ptr);
+    }
 
     // jac_h
+    assign_double_ptrs(N+1, &out->jac_h, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        int nhg = dims->nh[i] + dims->ng[i];
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nhg*nxu, &out->jac_h[i], &c_ptr);
+    }
 
     // grad_pi_xp
+    assign_double_ptrs(N, &out->grad_pi_xp, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nxu, &out->grad_pi_xp[i], &c_ptr);
+    }
 
     // grad_lam_h
+    assign_double_ptrs(N, &out->grad_lam_h, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nxu, &out->grad_lam_h[i], &c_ptr);
+    }
 
     // xp
+    assign_double_ptrs(N, &out->xp, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        assign_double(dims->nx[i+1], &out->xp[i], &c_ptr);
+    }
 
     // h
+    assign_double_ptrs(N, &out->h, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->nh[i], &out->h[i], &c_ptr);
+    }
+
+    assert((char*)raw_memory + ocp_lin_out_calculate_size(dims) >= c_ptr);
     
-    return NULL;
+    return out;
 }
