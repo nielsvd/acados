@@ -369,6 +369,63 @@ static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
     work = (ocp_lin_gn_workspace *) c_ptr;
     c_ptr += sizeof(ocp_lin_gn_workspace);
 
+    // S_adj_in
+    assign_double_ptrs(N, &work->S_adj_in, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        assign_double(dims->nx[i+1], &work->S_adj_in[i], &c_ptr);
+    }
+
+    // S_forw_in
+    assign_double_ptrs(N, &work->S_forw_in, &c_ptr);
+    for (int i=0;i<N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(dims->nx[i+1]*nxu, &work->S_forw_in[i], &c_ptr);
+    }
+
+    // F
+    assign_double_ptrs(N+1, &work->F, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->ny[i], &work->F[i], &c_ptr);
+    }
+
+    // DF
+    assign_double_ptrs(N+1, &work->DF, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(dims->ny[i]*nxu, &work->DF[i], &c_ptr);
+    }
+
+    // DFT
+    assign_double_ptrs(N+1, &work->DFT, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(nxu*dims->ny[i], &work->DFT[i], &c_ptr);
+    }
+
+    // H
+    assign_double_ptrs(N+1, &work->H, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        assign_double(dims->nh[i], &work->H[i], &c_ptr);
+    }
+
+    // DH
+    assign_double_ptrs(N+1, &work->DH, &c_ptr);
+    for (int i=0;i<=N;i++)
+    {
+        int nxu = dims->nx[i] + dims->nu[i];
+        assign_double(dims->nh[i]*nxu, &work->DFT[i], &c_ptr);
+    }
+
+    /*********************************
+     * submodules
+     *********************************/
+
     work->ls_res_work = (void **) c_ptr;
     c_ptr += (N+1) * sizeof(void *);
 
@@ -409,7 +466,147 @@ static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
 }
 
 
-int ocp_lin_gn(ocp_lin_in *qp_in, ocp_lin_out *qp_out, void *args_, void *memory_, void *work_)
+
+static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
 {
-    return 0;
+    return NULL;
+}
+
+
+
+int ocp_lin_gn(ocp_lin_in *lin_in, ocp_lin_out *lin_out, void *args_, void *memory_, void *work_)
+{
+    int return_value = ACADOS_SUCCESS;
+
+    ocp_lin_dims *dims = lin_in->dims;
+
+    ocp_lin_gn_args *args = (ocp_lin_gn_args *) args_;
+    ocp_lin_gn_memory *mem = (ocp_lin_gn_memory *) memory_;
+    ocp_lin_gn_workspace *work = (ocp_lin_gn_workspace *) cast_workspace(dims, args_, work_);
+
+    int N = dims->N;
+
+    // Simulate
+    for (int i=0;i<N;i++)
+    {
+        sim_in in;
+        in.nx = dims->nx[i];
+        in.nu = dims->nu[i];
+        in.np = dims->np[i];
+        in.x = lin_in->x[i];
+        in.u = lin_in->u[i];
+        in.p = lin_in->p[i];
+        in.S_adj = work->S_adj_in[i];
+        in.S_forw = work->S_forw_in[i];
+
+        // Initialize forward seed
+        assert(dims->nx[i] == dims->nx[i+1] && "No support for state transition maps yet.");
+        memset(in.S_forw, 0, dims->nx[i+1]*(dims->nx[i]+dims->nu[i])*sizeof(double));
+        for (int j=0;j<dims->nx[j];j++)
+        {
+            in.S_forw[j*dims->nx[i]+j] = 1;
+        }
+
+        // Initialize adjoint seed
+        for (int j=0;j<dims->nx[i+1];j++)
+        {
+            in.S_adj[j] = -lin_in->pi[i][j];
+        }
+
+        sim_out out;
+        sim_info info;
+        out.xn = lin_out->xp[i];
+        // out.grad = lin_out->grad_pi_xp[i];  // TODO(nielsvd): Find out what grad is...
+        out.S_hess = NULL;
+        out.S_forw = lin_out->jac_xp[i];
+        out.S_adj = lin_out->grad_pi_xp[i];
+        out.info = &info;
+
+        // eval
+        args->submodules.xp[i]->fun(&in, &out, args->xp_args[i], mem->xp_mem[i], work->xp_work[i]);
+    }
+
+    // Compute objective
+    for (int i=0;i<=N;i++)
+    {
+        double *inputs [3];
+        inputs[0] = lin_in->x[i];
+        inputs[1] = lin_in->u[i];
+        inputs[2] = lin_in->p[i];
+
+        bool compute_outputs [3];
+        compute_outputs[0] = true;
+        compute_outputs[1] = true;
+        compute_outputs[2] = false;
+
+        double *outputs [3];
+        outputs[0] = work->F[i];
+        outputs[1] = work->DF[i];
+        outputs[3] = NULL;
+
+        external_function_in in;
+        in.inputs = inputs;
+        in.compute_output = compute_outputs;
+
+        external_function_out out;
+        out.outputs = outputs;
+
+        // eval
+        args->submodules.ls_res[i]->fun(&in, &out, args->ls_res_args[i], mem->ls_res_mem[i], work->ls_res_work[i]);
+    }
+
+    // Compute path constraints
+    for (int i=0;i<=N;i++)
+    {
+        double *inputs [3];
+        inputs[0] = lin_in->x[i];
+        inputs[1] = lin_in->u[i];
+        inputs[2] = lin_in->p[i];
+
+        bool compute_outputs [3];
+        compute_outputs[0] = true;
+        compute_outputs[1] = true;
+        compute_outputs[2] = false;
+
+        double *outputs [3];
+        outputs[0] = work->H[i];
+        outputs[1] = work->DH[i];
+        outputs[3] = NULL;
+
+        external_function_in in;
+        in.inputs = inputs;
+        in.compute_output = compute_outputs;
+
+        external_function_out out;
+        out.outputs = outputs;
+
+        // eval
+        args->submodules.h[i]->fun(&in, &out, args->h_args[i], mem->h_mem[i], work->h_work[i]);
+    }
+
+    // Compute Hessian approximation and gradient of cost
+    for (int i=0;i<=N;i++)
+    {
+        int ny = dims->ny[i];
+        int nxu = dims->nx[i] + dims->nu[i];
+
+        // Transpose of DF
+        for (int_t j = 0; j < nxu; j++) {
+            for (int_t k = 0; k < ny; k++)
+                work->DFT[i][k * nxu + j] = work->DF[i][j * ny + k];
+        }
+
+        // Compute Gauss-Newton Hessian
+        for (int_t j = 0; j < nxu*nxu; j++) lin_out->hess_l[i][j] = 0;
+        dgemm_nn_3l(nxu, nxu, ny, work->DFT[i],
+                    nxu, work->DF[i], ny, lin_out->hess_l[i], nxu);
+        // Compute Gauss-Newton gradient
+        for (int_t j = 0; j < nxu; j++) lin_out->grad_f[i][j] = 0;
+        dgemv_n_3l(nxu, ny, work->DFT[i], nxu, work->F[i],
+                   lin_out->grad_f[i]);
+    }
+
+    // Write to output
+
+    return return_value;
 }

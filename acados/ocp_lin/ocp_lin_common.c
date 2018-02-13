@@ -27,7 +27,7 @@ int ocp_lin_dims_calculate_size(int N)
 {
     int size = sizeof(ocp_lin_dims);
 
-    size += 9*(N+1)*sizeof(int);
+    size += 10*(N+1)*sizeof(int);
 
     size += 8;  // initial align
 
@@ -53,6 +53,8 @@ ocp_lin_dims *assign_ocp_lin_dims(int N, void *raw_memory)
     assign_int(N + 1, &dims->nu, &c_ptr);
     // np
     assign_int(N + 1, &dims->np, &c_ptr);
+    // ny
+    assign_int(N + 1, &dims->ny, &c_ptr);
     // nb
     assign_int(N + 1, &dims->nb, &c_ptr);
     // nbx
@@ -116,6 +118,9 @@ int ocp_lin_in_calculate_size(ocp_lin_dims *dims)
         size += dims->nh[i] * sizeof(double);
     }
 
+    // step
+    size += N*sizeof(double);
+
     size += 1*8;
 
     return size;
@@ -169,7 +174,13 @@ ocp_lin_in *assign_ocp_lin_in(ocp_lin_dims *dims, void *raw_memory)
         assign_double(dims->nh[i], &in->lam[i], &c_ptr);
     }
 
+    // step
+    assign_double(N, &in->step, &c_ptr);
+
+
     assert((char*)raw_memory + ocp_lin_in_calculate_size(dims) >= c_ptr);
+
+    in->dims = dims;
 
     return in;
 }

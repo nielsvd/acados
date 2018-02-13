@@ -51,6 +51,7 @@ typedef struct {
     double *S_forw;  // forward seed
     double *S_adj;   // backward seed
 
+    // QUESTION(nielsvd): argument or input?
     double step;
 
 } sim_in;

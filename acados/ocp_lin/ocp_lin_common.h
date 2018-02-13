@@ -34,6 +34,7 @@ typedef struct {
     int *nx;
     int *nu;
     int *np;
+    int *ny;  // dims of cost-residual (== 1 ico E-MPC, >=1 ico GGN)
     int *nb;  // nbx + nbu
     int *nbx;
     int *nbu;
@@ -47,25 +48,31 @@ typedef struct {
 
 
 typedef struct {
-    real_t **x;
-    real_t **u;
-    real_t **p;
-    real_t **pi;
-    real_t **lam;
+    // TODO(nielsvd): remove, it's preferred to introduce 
+    //                dims as argument to *fun().
+    ocp_lin_dims *dims;
+
+    double **x;
+    double **u;
+    double **p;
+    double **pi;
+    double **lam;
+
+    double *step;
 } ocp_lin_in;
 
 
 
 typedef struct {
-    real_t **hess_l;       // TODO(nielsvd): Hessians of stage-wise
-                           // Lagrangians, document precise definition.
-    real_t **grad_f;       // Gradients of stage-wise cost terms.
-    real_t **jac_xp;       // Jacobians of stage-wise integration operator.
-    real_t **jac_h;        // Jacobians of stage-wise path constraints.
-    real_t **grad_pi_xp;   // Adjoint derivative of system dynamics
-    real_t **grad_lam_h;   // Adjoint derivative of path constraints
-    real_t **xp;           // Evaluation of stage-wise integration operator.
-    real_t **h;            // Evaluation of stage-wise path constraints.
+    double **hess_l;       // Hessians of stage-wise Lagrangians
+                           // TODO(nielsvd): document precise definition.
+    double **grad_f;       // Gradients of stage-wise cost terms.
+    double **jac_xp;       // Jacobians of stage-wise integration operator.
+    double **jac_h;        // Jacobians of stage-wise path constraints.
+    double **grad_pi_xp;   // Adjoint derivative of system dynamics
+    double **grad_lam_h;   // Adjoint derivative of path constraints
+    double **xp;           // Evaluation of stage-wise integration operator.
+    double **h;            // Evaluation of stage-wise path constraints.
 } ocp_lin_out;
 
 

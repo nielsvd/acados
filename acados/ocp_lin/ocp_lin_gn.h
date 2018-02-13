@@ -58,6 +58,14 @@ typedef struct {
 
 
 typedef struct {
+    double **S_adj_in;
+    double **S_forw_in;
+    double **F;
+    double **DF;
+    double **DFT;
+    double **H;
+    double **DH;
+
     void **ls_res_work;
     void **h_work;
     void **xp_work;
@@ -80,7 +88,7 @@ void *ocp_lin_gn_assign_memory(ocp_lin_dims *dims, void *args_, void *raw_memory
 //
 int ocp_lin_gn_calculate_workspace_size(ocp_lin_dims *dims, void *args_);
 //
-int ocp_lin_gn(ocp_lin_in *qp_in, ocp_lin_out *qp_out, void *args_, void *memory_, void *work_);
+int ocp_lin_gn(ocp_lin_in *lin_in, ocp_lin_out *lin_out, void *args_, void *memory_, void *work_);
 
 
 

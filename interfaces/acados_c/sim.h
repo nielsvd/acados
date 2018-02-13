@@ -34,7 +34,7 @@ extern "C" {
 
 
 typedef enum {
-    PREVIOUS,
+    // PREVIOUS,
     ERK,
     IRK,
     LIFTED_IRK
