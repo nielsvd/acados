@@ -28,7 +28,7 @@
 
 int sim_irk_integrator_calculate_submodules_size(sim_solver_config *config, sim_dims *dims)
 {
-    int size = sizeof(sim_irk_integrator_submodules);
+   int size = sizeof(sim_irk_integrator_submodules);
 
     extern external_function_dims sim_irk_impl_res_dims;
     size += calculate_external_function_fcn_ptrs_size(&config->extfun, &sim_irk_impl_res_dims);
@@ -36,7 +36,7 @@ int sim_irk_integrator_calculate_submodules_size(sim_solver_config *config, sim_
     extern external_function_dims sim_irk_impl_jac_dims;
     size += calculate_external_function_fcn_ptrs_size(&config->extfun, &sim_irk_impl_jac_dims);
 
-    return size;
+    return size; 
 }
 
 

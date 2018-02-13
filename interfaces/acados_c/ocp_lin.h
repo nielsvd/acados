@@ -28,6 +28,8 @@ extern "C" {
 #include <acados/ocp_lin/ocp_lin_common.h>
 // acados_c
 #include "acados_c/common.h"
+#include "acados_c/external_function.h"
+#include "acados_c/sim.h"
 
 typedef enum {
     GAUSS_NEWTON,
@@ -37,6 +39,9 @@ typedef enum {
 
 typedef struct {
     ocp_lin_method_t lin_method;
+    external_function_config extfun_ls_res;
+    external_function_config extfun_h;
+    sim_solver_config simsol;
 } ocp_lin_method_config;
 
 typedef struct {
@@ -49,7 +54,7 @@ typedef struct {
 
 // INPUT, OUTPUT AND OPTIONS
 //
-ocp_lin_dims *create_ocp_lin_dims();
+ocp_lin_dims *create_ocp_lin_dims(int N);
 //
 ocp_lin_in *create_ocp_lin_in(ocp_lin_dims *dims);
 //

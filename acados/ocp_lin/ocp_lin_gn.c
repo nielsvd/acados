@@ -19,7 +19,12 @@
 
 #include "acados/ocp_lin/ocp_lin_gn.h"
 
+#include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <acados/utils/mem.h>
+#include <acados/utils/math.h>
 
 
 
@@ -80,7 +85,7 @@ int ocp_lin_gn_calculate_args_size(ocp_lin_dims *dims, void *submodules_)
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -156,7 +161,7 @@ void *ocp_lin_gn_assign_args(ocp_lin_dims *dims, void **submodules_, void *raw_m
         c_ptr += sizeof(sim_solver_fcn_ptrs);
 
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -195,7 +200,7 @@ void *ocp_lin_gn_copy_args(ocp_lin_dims *dims, void *raw_memory, void *source_)
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -249,7 +254,7 @@ int ocp_lin_gn_calculate_memory_size(ocp_lin_dims *dims, void *args_)
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -299,7 +304,7 @@ void *ocp_lin_gn_assign_memory(ocp_lin_dims *dims, void *args_, void *raw_memory
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -340,7 +345,7 @@ int ocp_lin_gn_calculate_workspace_size(ocp_lin_dims *dims, void *args_)
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -447,7 +452,7 @@ static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
     for (int i=0;i<N;i++)
     {
         sim_dims sdi;
-        sdi.num_stages = 3;  // TODO(nielsvd): remove, should be an argument
+        sdi.num_stages = dims->num_stages[i];
         sdi.nx = dims->nx[i];
         sdi.nu = dims->nu[i];
         sdi.np = dims->np[i];
@@ -463,13 +468,6 @@ static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
     assert((char*)raw_memory + ocp_lin_gn_calculate_workspace_size(dims, args_) >= c_ptr);
 
     return (void *)work;
-}
-
-
-
-static void *cast_workspace(ocp_lin_dims *dims, void *args_, void *raw_memory)
-{
-    return NULL;
 }
 
 

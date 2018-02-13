@@ -7,6 +7,7 @@ ifeq ($(ACADOS_WITH_QORE), 1)
 OBJS += dense_qp/dense_qp_qore.o
 endif
 OBJS += dense_qp/dense_qp_qpoases.o
+OBJS += ocp_lin/ocp_lin_gn.o
 OBJS += ocp_qp/ocp_qp_full_condensing_solver.o
 OBJS += ocp_qp/ocp_qp_full_condensing.o
 OBJS += ocp_qp/ocp_qp_hpipm.o

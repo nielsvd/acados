@@ -19,7 +19,10 @@
 
 #include "acados/ocp_lin/ocp_lin_common.h"
 
+#include <assert.h>
 #include <stdlib.h>
+
+#include "acados/utils/mem.h"
 
 
 

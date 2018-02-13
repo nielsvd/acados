@@ -29,7 +29,6 @@
 
 
 typedef struct {
-    // QUESTION(nielsvd): should num_stages be part of sim_dims?
     int num_stages;
     int nx;
     int nu;
