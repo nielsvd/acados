@@ -33,18 +33,18 @@ int ocp_lin_gn_calculate_submodules_size(ocp_lin_method_config *config, ocp_lin_
 
     int N = dims->N;
 
-    size += 2*(N+1)*sizeof(external_function_fcn_ptrs);
+    size += 2*(N+1)*sizeof(external_function_fcn_ptrs *);
 
     for (int i=0;i<=N;i++)
     {
         extern external_function_dims ocp_lin_gn_ls_res_dims;
-        size += calculate_external_function_fcn_ptrs_size(&config->extfun_ls_res, &ocp_lin_gn_ls_res_dims);
+        size += calculate_external_function_fcn_ptrs_size(&config->extfun, &ocp_lin_gn_ls_res_dims);
 
         extern external_function_dims ocp_lin_gn_h_dims;
-        size += calculate_external_function_fcn_ptrs_size(&config->extfun_h, &ocp_lin_gn_h_dims);        
+        size += calculate_external_function_fcn_ptrs_size(&config->extfun, &ocp_lin_gn_h_dims);        
     }
 
-    size += N*sizeof(sim_solver_fcn_ptrs);
+    size += N*sizeof(sim_solver_fcn_ptrs *);
 
     for (int i=0;i<N;i++)
     {
@@ -82,12 +82,12 @@ void *ocp_lin_gn_assign_submodules(ocp_lin_method_config *config, ocp_lin_dims *
     for (int i=0;i<=N;i++)
     {
         extern external_function_dims ocp_lin_gn_ls_res_dims;
-        submodules->ls_res[i] = assign_external_function_fcn_ptrs(&config->extfun_ls_res, &ocp_lin_gn_ls_res_dims, c_ptr);
-        c_ptr += calculate_external_function_fcn_ptrs_size(&config->extfun_ls_res, &ocp_lin_gn_ls_res_dims);
+        submodules->ls_res[i] = assign_external_function_fcn_ptrs(&config->extfun, &ocp_lin_gn_ls_res_dims, c_ptr);
+        c_ptr += calculate_external_function_fcn_ptrs_size(&config->extfun, &ocp_lin_gn_ls_res_dims);
 
         extern external_function_dims ocp_lin_gn_h_dims;
-        submodules->h[i] = assign_external_function_fcn_ptrs(&config->extfun_h, &ocp_lin_gn_h_dims, c_ptr);
-        c_ptr += calculate_external_function_fcn_ptrs_size(&config->extfun_h, &ocp_lin_gn_h_dims);
+        submodules->h[i] = assign_external_function_fcn_ptrs(&config->extfun, &ocp_lin_gn_h_dims, c_ptr);
+        c_ptr += calculate_external_function_fcn_ptrs_size(&config->extfun, &ocp_lin_gn_h_dims);
     }
 
     submodules->xp = (sim_solver_fcn_ptrs **) c_ptr;

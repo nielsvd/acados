@@ -99,7 +99,7 @@ int sim_erk_integrator_calculate_args_size(sim_dims *dims, void *submodules_)
     }
     
     make_int_multiple_of(8, &size);
-    size += 1 * 8;
+    size += 2 * 8;
 
     return size;
 }
@@ -165,6 +165,8 @@ void *sim_erk_integrator_assign_args(sim_dims *dims, void **submodules_, void *r
     } else {
         args->submodules.hess_vde = NULL;
     }
+
+    align_char_to(8, &c_ptr);
 
     assert((char*)raw_memory + sim_erk_integrator_calculate_args_size(dims, *submodules_) >= c_ptr);
 
@@ -288,8 +290,6 @@ void *sim_erk_integrator_assign_memory(sim_dims *dims, void *args_, void *raw_me
 
     align_char_to(8, &c_ptr);
 
-    assert((size_t)c_ptr % 8 == 0 && "memory not 8-byte aligned!");
-
     assert((char*)raw_memory + sim_erk_integrator_calculate_memory_size(dims, args_) >= c_ptr);
 
     return (void *)mem;
@@ -346,7 +346,7 @@ int sim_erk_integrator_calculate_workspace_size(sim_dims *dims, void *args_)
     }
 
     make_int_multiple_of(8, &size);
-    size += 1 * 8;
+    size += 2 * 8;
 
     return size;
 }
@@ -410,6 +410,8 @@ static void *cast_workspace(sim_dims *dims, void *args_, void *raw_memory)
         workspace->hess_vde_work = (void *) c_ptr;
         c_ptr += args->submodules.hess_vde->calculate_workspace_size(&sim_erk_hess_vde_dims, args->hess_vde_args);
     }
+
+    align_char_to(8, &c_ptr);
 
     assert((char*)raw_memory + sim_erk_integrator_calculate_workspace_size(dims, args_) >= c_ptr);
 

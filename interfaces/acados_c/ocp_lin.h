@@ -39,8 +39,7 @@ typedef enum {
 
 typedef struct {
     ocp_lin_method_t lin_method;
-    external_function_config extfun_ls_res;
-    external_function_config extfun_h;
+    external_function_config extfun;
     sim_solver_config simsol;
 } ocp_lin_method_config;
 
@@ -76,7 +75,7 @@ ocp_lin_method *ocp_lin_assign(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims *
 //
 ocp_lin_method *ocp_lin_create(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims *dims, void *args_);
 //
-int ocp_lin_solve(ocp_lin_method *solver, ocp_lin_in *qp_in, ocp_lin_out *qp_out);
+int ocp_lin_eval(ocp_lin_method *method, ocp_lin_in *in, ocp_lin_out *out);
 
 // OPTIONS BASED CONFIGURATION STRATEGY
 //
@@ -84,11 +83,11 @@ int ocp_lin_calculate_submodules_size(ocp_lin_method_config *config, ocp_lin_dim
 //
 void *ocp_lin_assign_submodules(ocp_lin_method_config *config, ocp_lin_dims *dims, void *raw_memory);
 //
-int calculate_ocp_lin_solver_fcn_ptrs_size(ocp_lin_method_config *config, ocp_lin_dims *dims);
+int calculate_ocp_lin_method_fcn_ptrs_size(ocp_lin_method_config *config, ocp_lin_dims *dims);
 //
-void *assign_ocp_lin_solver_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_dims *dims, void *raw_memory);
+void *assign_ocp_lin_method_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_dims *dims, void *raw_memory);
 //
-void *create_ocp_lin_solver_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_dims *dims);
+void *create_ocp_lin_method_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_dims *dims);
 
 // EXPERT INTERFACE
 //

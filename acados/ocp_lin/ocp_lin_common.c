@@ -32,6 +32,8 @@ int ocp_lin_dims_calculate_size(int N)
 
     size += 10*(N+1)*sizeof(int);
 
+    size += N*sizeof(int);
+
     size += 8;  // initial align
 
     return size;
@@ -70,6 +72,8 @@ ocp_lin_dims *assign_ocp_lin_dims(int N, void *raw_memory)
     assign_int(N + 1, &dims->nh, &c_ptr);
     // ns
     assign_int(N + 1, &dims->ns, &c_ptr);
+    // num_stages
+    assign_int(N, &dims->num_stages, &c_ptr);
 
     // N
     dims->N = N;

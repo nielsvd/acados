@@ -98,7 +98,7 @@ int sim_lifted_irk_integrator_calculate_args_size(sim_dims *dims, void *submodul
     }
 
     make_int_multiple_of(8, &size);
-    size += 2 * 8;
+    size += 3 * 8;
 
     return size;
 }
@@ -162,6 +162,8 @@ void *sim_lifted_irk_integrator_assign_args(sim_dims *dims, void **submodules_, 
     } else {
         args->submodules.jacobian_ode = NULL;
     }
+
+    align_char_to(8, &c_ptr);
 
     assert((char *)raw_memory + sim_lifted_irk_integrator_calculate_args_size(dims, *submodules_) >= c_ptr);
 
@@ -320,7 +322,7 @@ int sim_lifted_irk_integrator_calculate_memory_size(sim_dims *dims, void *args_)
     
     size += args->submodules.jacobian_ode->calculate_memory_size(&sim_lifted_irk_jacobian_ode_dims, args->jacobian_ode_args);
 
-    size += 2 * 8;
+    size += 3 * 8;
     return size;
 }
 
@@ -430,6 +432,8 @@ void *sim_lifted_irk_integrator_assign_memory(sim_dims *dims, void *args_, void 
     memory->jacobian_ode_mem = args->submodules.jacobian_ode->assign_memory(&sim_lifted_irk_jacobian_ode_dims, args->jacobian_ode_args, c_ptr);
     c_ptr += args->submodules.jacobian_ode->calculate_memory_size(&sim_lifted_irk_jacobian_ode_dims, args->jacobian_ode_args);
 
+    align_char_to(8, &c_ptr);
+
     assert((char*)raw_memory + sim_lifted_irk_integrator_calculate_memory_size(dims, args) >= c_ptr);
 
     // initialize
@@ -518,6 +522,8 @@ int sim_lifted_irk_integrator_calculate_workspace_size(sim_dims *dims, void *arg
     
     size += args->submodules.jacobian_ode->calculate_workspace_size(&sim_lifted_irk_jacobian_ode_dims, args->jacobian_ode_args);
 
+    size += 2 * 8;
+
     return size;
 }
 
@@ -545,6 +551,8 @@ static void *cast_workspace(sim_dims *dims, void *args_, void *raw_memory)
 
     sim_lifted_irk_integrator_workspace *work = (sim_lifted_irk_integrator_workspace *) c_ptr;
     c_ptr += sizeof(sim_lifted_irk_integrator_workspace);
+
+    align_char_to(8, &c_ptr);
 
     work->rhs_in = (double *)c_ptr;
     c_ptr += (nx * (1 + NF) + nu + np + 1) * sizeof(double);  // rhs_in
@@ -621,6 +629,8 @@ static void *cast_workspace(sim_dims *dims, void *args_, void *raw_memory)
 
     work->jacobian_ode_work = (void *) c_ptr;
     c_ptr += args->submodules.jacobian_ode->calculate_workspace_size(&sim_lifted_irk_jacobian_ode_dims, args->jacobian_ode_args);
+
+    align_char_to(8, &c_ptr);
 
     assert((char*)work + sim_lifted_irk_integrator_calculate_workspace_size(dims, args_) >= c_ptr);
 

@@ -63,8 +63,6 @@ typedef struct {
     double **F;
     double **DF;
     double **DFT;
-    double **H;
-    double **DH;
 
     void **ls_res_work;
     void **h_work;

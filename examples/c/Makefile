@@ -33,6 +33,7 @@ EXAMPLES += mass_spring_pcond_hpipm_split
 EXAMPLES += mass_spring_fcond_hpipm_split
 EXAMPLES += mass_spring_offline_fcond_qpoases_split
 # EXAMPLES += nonlinear_chain_ocp_nlp
+EXAMPLES += nonlinear_chain_ocp_lin
 
 examples: $(EXAMPLES)
 
@@ -45,6 +46,7 @@ RUN_EXAMPLES += run_mass_spring_pcond_hpipm_split
 RUN_EXAMPLES += run_mass_spring_fcond_hpipm_split
 RUN_EXAMPLES += run_mass_spring_offline_fcond_qpoases_split
 # RUN_EXAMPLES += run_nonlinear_chain_ocp_nlp
+RUN_EXAMPLES += run_nonlinear_chain_ocp_lin
 
 run_examples: $(RUN_EXAMPLES)
 
@@ -98,7 +100,6 @@ mass_spring_offline_fcond_qpoases_split: mass_spring_offline_fcond_qpoases_split
 
 
 CHAIN_OBJS =
-CHAIN_OBJS += nonlinear_chain_ocp_nlp.o
 # 2 masses
 CHAIN_OBJS += chain_model/vde_chain_nm2.o
 CHAIN_OBJS += chain_model/jac_chain_nm2.o
@@ -106,6 +107,8 @@ CHAIN_OBJS += chain_model/vde_adj_chain_nm2.o
 CHAIN_OBJS += chain_model/vde_hess_chain_nm2.o
 CHAIN_OBJS += chain_model/ls_cost_nm2.o
 CHAIN_OBJS += chain_model/ls_costN_nm2.o
+CHAIN_OBJS += chain_model/pathcon_nm2.o
+CHAIN_OBJS += chain_model/pathconN_nm2.o
 # 3 masses
 CHAIN_OBJS += chain_model/vde_chain_nm3.o
 CHAIN_OBJS += chain_model/jac_chain_nm3.o
@@ -113,17 +116,31 @@ CHAIN_OBJS += chain_model/vde_adj_chain_nm3.o
 CHAIN_OBJS += chain_model/vde_hess_chain_nm3.o
 CHAIN_OBJS += chain_model/ls_cost_nm3.o
 CHAIN_OBJS += chain_model/ls_costN_nm3.o
+CHAIN_OBJS += chain_model/pathcon_nm3.o
+CHAIN_OBJS += chain_model/pathconN_nm3.o
 # 4 masses
 CHAIN_OBJS += chain_model/vde_chain_nm4.o
 CHAIN_OBJS += chain_model/jac_chain_nm4.o
 CHAIN_OBJS += chain_model/vde_adj_chain_nm4.o
 CHAIN_OBJS += chain_model/vde_hess_chain_nm4.o
+CHAIN_OBJS += chain_model/ls_cost_nm4.o
+CHAIN_OBJS += chain_model/ls_costN_nm4.o
+CHAIN_OBJS += chain_model/pathcon_nm4.o
+CHAIN_OBJS += chain_model/pathconN_nm4.o
 # CHAIN_OBJS += nonlinear_chain_ocp_nlp.o
 
-nonlinear_chain_ocp_nlp: $(CHAIN_OBJS)
-	# $(CCC) -o nonlinear_chain_ocp_nlp.out $(CHAIN_OBJS) $(LDFLAGS) $(LIBS)
+nonlinear_chain_ocp_nlp: $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o
+	# $(CCC) -o nonlinear_chain_ocp_nlp.out nonlinear_chain_ocp_nlp.o $(CHAIN_OBJS) $(LDFLAGS) $(LIBS)
 	@echo
 	@echo " Example nonlinear_chain_ocp_nlp build complete."
+	@echo
+
+
+
+nonlinear_chain_ocp_lin: $(CHAIN_OBJS) nonlinear_chain_ocp_lin.o
+	$(CCC) -o nonlinear_chain_ocp_lin.out nonlinear_chain_ocp_lin.o $(CHAIN_OBJS) $(LDFLAGS) $(LIBS)
+	@echo
+	@echo " Example nonlinear_chain_ocp_lin build complete."
 	@echo
 
 
@@ -155,6 +172,9 @@ run_mass_spring_offline_fcond_qpoases_split:
 
 run_nonlinear_chain_ocp_nlp:
 	./nonlinear_chain_ocp_nlp.out
+
+run_nonlinear_chain_ocp_lin:
+	./nonlinear_chain_ocp_lin.out
 
 
 

@@ -103,7 +103,8 @@ int ocp_lin_calculate_args_size(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims 
 
 void *ocp_lin_assign_args(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims *dims, void *raw_memory)
 {
-    void *args = fcn_ptrs->assign_args(dims, &fcn_ptrs->submodules, raw_memory);
+    void *submodules = fcn_ptrs->submodules;
+    void *args = fcn_ptrs->assign_args(dims, &submodules, raw_memory);
 
     fcn_ptrs->initialize_default_args(dims, args);
 
@@ -155,32 +156,32 @@ ocp_lin_method *ocp_lin_assign(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims *
 {
     char *c_ptr = (char *) raw_memory;
 
-    ocp_lin_method *solver = (ocp_lin_method *) c_ptr;
+    ocp_lin_method *method = (ocp_lin_method *) c_ptr;
     c_ptr += sizeof(ocp_lin_method);
 
-    solver->fcn_ptrs = (ocp_lin_method_fcn_ptrs *) c_ptr;
+    method->fcn_ptrs = (ocp_lin_method_fcn_ptrs *) c_ptr;
     c_ptr += sizeof(ocp_lin_method_fcn_ptrs);
 
-    solver->dims = assign_ocp_lin_dims(dims->N, c_ptr);
+    method->dims = assign_ocp_lin_dims(dims->N, c_ptr);
     c_ptr += ocp_lin_dims_calculate_size(dims->N);
 
-    solver->args = ocp_lin_copy_args(fcn_ptrs, dims, c_ptr, args_);
+    method->args = ocp_lin_copy_args(fcn_ptrs, dims, c_ptr, args_);
     c_ptr += ocp_lin_calculate_args_size(fcn_ptrs, dims);
 
-    solver->mem = fcn_ptrs->assign_memory(dims, args_, c_ptr);
+    method->mem = fcn_ptrs->assign_memory(dims, args_, c_ptr);
     c_ptr += fcn_ptrs->calculate_memory_size(dims, args_);
 
-    solver->work = (void *) c_ptr;
+    method->work = (void *) c_ptr;
     c_ptr += fcn_ptrs->calculate_workspace_size(dims, args_);
 
     assert((char*)raw_memory + ocp_lin_calculate_size(fcn_ptrs, dims, args_) == c_ptr);
 
-    *solver->fcn_ptrs = *fcn_ptrs;
-    solver->fcn_ptrs->submodules = NULL;
+    *method->fcn_ptrs = *fcn_ptrs;
+    method->fcn_ptrs->submodules = NULL;
 
-    ocp_lin_copy_dims(solver->dims, dims);
+    ocp_lin_copy_dims(method->dims, dims);
 
-    return solver;
+    return method;
 }
 
 
@@ -191,16 +192,16 @@ ocp_lin_method *ocp_lin_create(ocp_lin_method_fcn_ptrs *fcn_ptrs, ocp_lin_dims *
 
     void *ptr = calloc(1, bytes);
 
-    ocp_lin_method *solver = ocp_lin_assign(fcn_ptrs, dims, args_, ptr);
+    ocp_lin_method *method = ocp_lin_assign(fcn_ptrs, dims, args_, ptr);
 
-    return solver;
+    return method;
 }
 
 
 
-int ocp_lin_solve(ocp_lin_method *solver, ocp_lin_in *qp_in, ocp_lin_out *qp_out)
+int ocp_lin_eval(ocp_lin_method *method, ocp_lin_in *qp_in, ocp_lin_out *qp_out)
 {
-    return solver->fcn_ptrs->fun(qp_in, qp_out, solver->args, solver->mem, solver->work);
+    return method->fcn_ptrs->fun(qp_in, qp_out, method->args, method->mem, method->work);
 }
 
 
@@ -291,9 +292,9 @@ void *create_ocp_lin_method_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_dims
 int set_ocp_lin_method_fcn_ptrs(ocp_lin_method_config *config, ocp_lin_method_fcn_ptrs *fcn_ptrs)
 {
     int return_value = ACADOS_SUCCESS;
-    ocp_lin_method_t solver_name = config->lin_method;
+    ocp_lin_method_t method_name = config->lin_method;
 
-    switch (solver_name)
+    switch (method_name)
     {
         case GAUSS_NEWTON:
             fcn_ptrs->fun = &ocp_lin_gn;

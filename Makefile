@@ -10,7 +10,7 @@ include ./Makefile.rule
 OBJS =
 
 # ocp nlp
-# OBJS += acados/ocp_nlp/ocp_nlp_common.o
+OBJS += acados/ocp_nlp/ocp_nlp_common.o
 # OBJS += acados/ocp_nlp/ocp_nlp_sm_gn.o
 # OBJS += acados/ocp_nlp/ocp_nlp_gn_sqp.o
 # dense qp

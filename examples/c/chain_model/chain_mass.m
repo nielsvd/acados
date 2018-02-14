@@ -32,14 +32,16 @@ N = 20;
 % Number of variables
 nx = (Nm-1)*2*3;
 nu = 3;
+np = 0;
 
 % Trivial LS cost function
 cost_x = SX.sym('x',nx);
 cost_u = SX.sym('u',nu);
+cost_p = SX.sym('p',np);
 cost_xu = [cost_x;cost_u];
 cost_y = [cost_x;cost_u];
 cost_jac_y = jacobian(cost_y,cost_xu);
-ls_cost = Function(['ls_cost_nm' num2str(Nm)], {cost_x,cost_u},{cost_y,cost_jac_y});
+ls_cost = Function(['ls_cost_nm' num2str(Nm)], {cost_x,cost_u,cost_p},{cost_y,cost_jac_y});
 
 opts = struct('mex', false);
 ls_cost.generate(['ls_cost_nm' num2str(Nm)], opts);
@@ -47,23 +49,24 @@ ls_cost.generate(['ls_cost_nm' num2str(Nm)], opts);
 % Trivial terminal LS cost function
 cost_yN = cost_x;
 cost_jac_yN = jacobian(cost_yN,cost_x);
-ls_costN = Function(['ls_costN_nm' num2str(Nm)], {cost_x}, {cost_yN, cost_jac_yN});
+ls_costN = Function(['ls_costN_nm' num2str(Nm)], {cost_x,cost_u,cost_p}, {cost_yN, cost_jac_yN});
 ls_costN.generate(['ls_costN_nm' num2str(Nm)], opts);
 
 % Empty path constraints
 pathcon_g = SX.zeros(0);
 pathcon_jac_g = jacobian(pathcon_g, cost_xu);
-pathcon = Function(['pathcon_nm' num2str(Nm)], {cost_x, cost_u}, {pathcon_g, pathcon_jac_g});
+pathcon = Function(['pathcon_nm' num2str(Nm)], {cost_x,cost_u,cost_p}, {pathcon_g, pathcon_jac_g});
 pathcon.generate(['pathcon_nm' num2str(Nm)], opts);
 
 % Empty terminal path constraints
 pathcon_gN = SX.zeros(0);
 pathcon_jac_gN = jacobian(pathcon_gN, cost_x);
-pathconN = Function(['pathconN_nm' num2str(Nm)], {cost_x}, {pathcon_gN, pathcon_jac_gN});
+pathconN = Function(['pathconN_nm' num2str(Nm)], {cost_x,cost_u,cost_p}, {pathcon_gN, pathcon_jac_gN});
 pathconN.generate(['pathconN_nm' num2str(Nm)], opts);
 
 % State variables
 u = SX.sym('u',3);
+par = SX.sym('p',0);
 dae.p = u;
 
 dae.x = [];
@@ -110,7 +113,7 @@ x0_guess = [Xpoints(2:end);zeros(5,Nm-1)];
 x0_guess = x0_guess(:);
 u_guess = zeros(3,1);
 
-odeFun = Function('odeFun',{dae.x,dae.p},{dae.ode,jacobian(dae.ode,[dae.x;dae.p])+SX.zeros(nx,nx+nu)});
+odeFun = Function('odeFun',{dae.x,dae.p,par},{dae.ode,jacobian(dae.ode,[dae.x;dae.p])+SX.zeros(nx,nx+nu)});
 
 Sx = SX.sym('Sx',nx,nx);
 Sp = SX.sym('Sp',nx,nu);
@@ -121,10 +124,10 @@ vdeX = vdeX + jtimes(dae.ode,dae.x,Sx);
 vdeP = SX.zeros(nx,nu) + jacobian(dae.ode,dae.p);
 vdeP = vdeP + jtimes(dae.ode,dae.x,Sp);
 
-vdeFun = Function(['vde_chain_nm' num2str(Nm)],{dae.x,Sx,Sp,dae.p},{dae.ode,vdeX,vdeP});
+vdeFun = Function(['vde_chain_nm' num2str(Nm)],{dae.x,Sx,Sp,dae.p,par},{dae.ode,vdeX,vdeP});
 
 jacX = SX.zeros(nx,nx) + jacobian(dae.ode,dae.x);
-jacFun = Function(['jac_chain_nm' num2str(Nm)],{dae.x,dae.p},{dae.ode,jacX});
+jacFun = Function(['jac_chain_nm' num2str(Nm)],{dae.x,dae.p,par},{dae.ode,jacX});
 
 vdeFun.generate(['vde_chain_nm' num2str(Nm)]);
 jacFun.generate(['jac_chain_nm' num2str(Nm)]);
@@ -132,7 +135,7 @@ jacFun.generate(['jac_chain_nm' num2str(Nm)]);
 lambdaX = SX.sym('lambdaX', nx, 1);
 adj = jtimes(dae.ode, [dae.x; u], lambdaX, true);
 
-adjFun = Function(['vde_adj_chain_nm' num2str(Nm)], {dae.x, lambdaX, u}, {adj});
+adjFun = Function(['vde_adj_chain_nm' num2str(Nm)], {dae.x, lambdaX, u, par}, {adj});
 adjFun.generate(['vde_adj_chain_nm' num2str(Nm)]);
 
 S_forw = [Sx Sp; DM([zeros(nu,nx) eye(nu)])];
@@ -144,13 +147,13 @@ for j = 1:nx+nu
     end
 end
 
-hessFun = Function(['vde_hess_chain_nm' num2str(Nm)], {dae.x, Sx, Sp, lambdaX, u}, {adj, hess2});
+hessFun = Function(['vde_hess_chain_nm' num2str(Nm)], {dae.x, Sx, Sp, lambdaX, u, par}, {adj, hess2});
 hessFun.generate(['vde_hess_chain_nm' num2str(Nm)]);
 
 lambdaX = SX.sym('lambdaX', nx, 1);
 adj = jtimes(dae.ode, [dae.x; u], lambdaX, true);
 
-adjFun = Function(['vde_adj_chain_nm' num2str(Nm)], {dae.x, lambdaX, u}, {adj});
+adjFun = Function(['vde_adj_chain_nm' num2str(Nm)], {dae.x, lambdaX, u, par}, {adj});
 adjFun.generate(['vde_adj_chain_nm' num2str(Nm)]);
 
 S_forw = [Sx Sp; DM([zeros(nu,nx) eye(nu)])];
@@ -162,12 +165,12 @@ for j = 1:nx+nu
     end
 end
 
-hessFun = Function(['vde_hess_chain_nm' num2str(Nm)], {dae.x, Sx, Sp, lambdaX, u}, {adj, hess2});
+hessFun = Function(['vde_hess_chain_nm' num2str(Nm)], {dae.x, Sx, Sp, lambdaX, u, par}, {adj, hess2});
 hessFun.generate(['vde_hess_chain_nm' num2str(Nm)]);
 
-out = odeFun(x0_guess,u_guess);
+out = odeFun(x0_guess,u_guess,[]);
 while norm(full(out)) > 1e-10
-    [out, out2] = odeFun(x0_guess,u_guess);
+    [out, out2] = odeFun(x0_guess,u_guess,[]);
     val = full(out);
     jac = full(out2);
     delta = -jac\val;
@@ -186,9 +189,9 @@ x0_init = [zeros(1,Nm-1);Ypoints(2:end);Zpoints(2:end);zeros(3,Nm-1)];
 x0_init = x0_init(:);
 u_init = zeros(3,1);
 
-out = odeFun(x0_init,u_init);
+out = odeFun(x0_init,u_init,[]);
 while norm(full(out)) > 1e-10
-    [out, out2] = odeFun(x0_init,u_init);
+    [out, out2] = odeFun(x0_init,u_init,[]);
     val = full(out);
     jac = full(out2);
     delta = -jac\val;

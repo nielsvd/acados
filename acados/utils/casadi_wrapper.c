@@ -79,6 +79,8 @@ int casadi_wrapper_calculate_args_size(external_function_dims *dims, void *submo
 {
     int size = sizeof(casadi_wrapper_args);
 
+    size += 1*8;
+
     return size;
 }
 
@@ -93,9 +95,9 @@ void *casadi_wrapper_assign_args(external_function_dims *dims, void **submodules
     args = (casadi_wrapper_args *) c_ptr;
     c_ptr += sizeof(casadi_wrapper_args);
 
-    assert((size_t)c_ptr % 8 == 0 && "memory not 8-byte aligned!");
+    align_char_to(8, &c_ptr);
 
-    assert((char*)raw_memory + casadi_wrapper_calculate_args_size(dims, *submodules_) == c_ptr);
+    assert((char*)raw_memory + casadi_wrapper_calculate_args_size(dims, *submodules_) >= c_ptr);
 
     // Update submodules pointer
     *submodules_ = NULL;
@@ -159,8 +161,6 @@ void *casadi_wrapper_assign_memory(external_function_dims *dims, void *args_, vo
 
     align_char_to(8, &c_ptr);
 
-    assert((size_t)c_ptr % 8 == 0 && "memory not 8-byte aligned!");
-
     assert((char*)raw_memory + casadi_wrapper_calculate_memory_size(dims, args) >= c_ptr);
 
     return (void *)mem;
@@ -187,6 +187,8 @@ int casadi_wrapper_calculate_workspace_size(external_function_dims *dims, void *
         size += nnz_output(args->sparsity(i)) * sizeof(double);
     }
 
+    size += 2*8;
+
     return size;
 }
 
@@ -199,6 +201,8 @@ static void cast_workspace(casadi_wrapper_args *args, casadi_wrapper_memory *mem
 
     char *c_ptr = (char *) work;
     c_ptr += sizeof(casadi_wrapper_workspace);
+
+    align_char_to(8, &c_ptr);
 
     work->arg = (const double **)c_ptr;
     c_ptr += sz_arg * sizeof(double *);
@@ -219,6 +223,10 @@ static void cast_workspace(casadi_wrapper_args *args, casadi_wrapper_memory *mem
         work->sparse_res[i] = (double *)c_ptr;
         c_ptr += nnz_output(args->sparsity(i)) * sizeof(double);
     }
+
+    align_char_to(8, &c_ptr);
+
+    assert((char*)work + casadi_wrapper_calculate_workspace_size(NULL, args) >= c_ptr);
 }
 
 
