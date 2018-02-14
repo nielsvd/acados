@@ -94,6 +94,8 @@ int main()
      * Set arguments
      **********************************/
 
+    printf("\nCompute GGN sensitivities of chain-problem using ERK:\n\n");
+
     ocp_lin_gn_args *gn_args = (ocp_lin_gn_args *) args;
     for (int i=0;i<N;i++)
     {
@@ -157,6 +159,68 @@ int main()
 
     /**********************************
      * Print output
-     **********************************/    
+     **********************************/
 
+    for (int i=0;i<N;i++)
+    {
+        int nx = dims->nx[i];
+        int nu = dims->nu[i];
+        int nxu = nx + nu;
+
+        printf("\nStage %d:\n=========\n\n",i);
+
+        printf("\nHessian approximation:\n");
+        for (int j=0;j<nxu;j++)
+        {
+            for (int k=0;k<nxu;k++)
+            {
+                printf("%8.5f ", out->hess_l[k*nxu+j]);
+            }
+            printf("\n");
+        }
+
+        printf("\nGradient of cost:\n");
+        for (int j=0;j<nxu;j++)
+        {
+            printf("%8.5f ", out->grad_f[j]);
+        }
+        printf("\n");
+
+        printf("\nSystem dynamics Jacobian:\n");
+        for (int j=0;j<dims->nx[i+1];j++)
+        {
+            for (int k=0;k<nxu;k++)
+            {
+                printf("%8.5f ", out->jac_xp[k*dims->nx[i+1]+j]);
+            }
+            printf("\n");
+        }
+
+        printf("\nInequalities Jacobian:\n");
+        for (int j=0;j<dims->nh[i];j++)
+        {
+            for (int k=0;k<nxu;k++)
+            {
+                printf("%8.5f ", out->jac_h[k*dims->nh[i]+j]);
+            }
+            printf("\n");
+        }
+
+        printf("\nForward simulation:\n");
+        for (int j=0;j<dims->nx[i+1];j++)
+        {
+            printf("%8.5f ", out->xp[j]);
+        }
+        printf("\n");
+
+        printf("\nEvaluation of inequalities:\n");
+        for (int j=0;j<dims->nh[i];j++)
+        {
+            printf("%8.5f ", out->h[j]);
+        }
+        printf("\n");
+
+    }
+
+    return 0;
 }
