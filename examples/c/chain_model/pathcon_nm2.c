@@ -71,7 +71,7 @@ static const int casadi_s1[7] = {3, 1, 0, 3, 0, 1, 2};
 static const int casadi_s2[4] = {0, 1, 0, 0};
 static const int casadi_s3[12] = {0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-/* pathcon_nm2:(i0[6],i1[3],i2[0])->(o0[0],o1[0x9]) */
+/* pathcon_nm2:(i0[6],i1[3],i2[6])->(o0[0],o1[0x9]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, int* iw, casadi_real* w, void* mem) {
   return 0;
 }
@@ -111,7 +111,7 @@ CASADI_SYMBOL_EXPORT const int* pathcon_nm2_sparsity_in(int i) {
   switch (i) {
     case 0: return casadi_s0;
     case 1: return casadi_s1;
-    case 2: return casadi_s2;
+    case 2: return casadi_s0;
     default: return 0;
   }
 }

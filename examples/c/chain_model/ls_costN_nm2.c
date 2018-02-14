@@ -46,7 +46,6 @@ casadi_real if_else(casadi_real c, casadi_real x, casadi_real y) { return c!=0 ?
 #define casadi_s0 CASADI_PREFIX(s0)
 #define casadi_s1 CASADI_PREFIX(s1)
 #define casadi_s2 CASADI_PREFIX(s2)
-#define casadi_s3 CASADI_PREFIX(s3)
 
 /* Printing routine */
 #define PRINTF printf
@@ -68,23 +67,34 @@ casadi_real if_else(casadi_real c, casadi_real x, casadi_real y) { return c!=0 ?
 
 static const int casadi_s0[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
 static const int casadi_s1[7] = {3, 1, 0, 3, 0, 1, 2};
-static const int casadi_s2[4] = {0, 1, 0, 0};
-static const int casadi_s3[15] = {6, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5};
+static const int casadi_s2[15] = {6, 6, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5};
 
-/* ls_costN_nm2:(i0[6],i1[3],i2[0])->(o0[6],o1[6x6,6nz]) */
+/* ls_costN_nm2:(i0[6],i1[3],i2[6])->(o0[6],o1[6x6,6nz]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, int* iw, casadi_real* w, void* mem) {
-  casadi_real a0;
+  casadi_real a0, a1;
   a0=arg[0] ? arg[0][0] : 0;
+  a1=arg[2] ? arg[2][0] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][0]=a0;
   a0=arg[0] ? arg[0][1] : 0;
+  a1=arg[2] ? arg[2][1] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][1]=a0;
   a0=arg[0] ? arg[0][2] : 0;
+  a1=arg[2] ? arg[2][2] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][2]=a0;
   a0=arg[0] ? arg[0][3] : 0;
+  a1=arg[2] ? arg[2][3] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][3]=a0;
   a0=arg[0] ? arg[0][4] : 0;
+  a1=arg[2] ? arg[2][4] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][4]=a0;
   a0=arg[0] ? arg[0][5] : 0;
+  a1=arg[2] ? arg[2][5] : 0;
+  a0=(a0-a1);
   if (res[0]!=0) res[0][5]=a0;
   a0=1.;
   if (res[1]!=0) res[1][0]=a0;
@@ -131,7 +141,7 @@ CASADI_SYMBOL_EXPORT const int* ls_costN_nm2_sparsity_in(int i) {
   switch (i) {
     case 0: return casadi_s0;
     case 1: return casadi_s1;
-    case 2: return casadi_s2;
+    case 2: return casadi_s0;
     default: return 0;
   }
 }
@@ -139,7 +149,7 @@ CASADI_SYMBOL_EXPORT const int* ls_costN_nm2_sparsity_in(int i) {
 CASADI_SYMBOL_EXPORT const int* ls_costN_nm2_sparsity_out(int i) {
   switch (i) {
     case 0: return casadi_s0;
-    case 1: return casadi_s3;
+    case 1: return casadi_s2;
     default: return 0;
   }
 }
@@ -148,7 +158,7 @@ CASADI_SYMBOL_EXPORT int ls_costN_nm2_work(int *sz_arg, int* sz_res, int *sz_iw,
   if (sz_arg) *sz_arg = 3;
   if (sz_res) *sz_res = 2;
   if (sz_iw) *sz_iw = 0;
-  if (sz_w) *sz_w = 1;
+  if (sz_w) *sz_w = 2;
   return 0;
 }
 

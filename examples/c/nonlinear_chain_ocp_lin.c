@@ -51,7 +51,6 @@ int main()
     for (int i=0; i <= N; i++)
     {
         dims->nx[i] = nx;
-        dims->np[i] = 0;
         dims->nbx[i] = nmf;
         dims->nbu[i] = nu;
         dims->nb[i] = dims->nbu[i]+dims->nbx[i];;
@@ -63,9 +62,11 @@ int main()
     {
         dims->num_stages[i] = 4;
         dims->nu[i] = nu;
+        dims->np[i] = ny;
         dims->ny[i] = ny;
     }
     dims->nu[N] = 0;
+    dims->np[N] = nyN;
     dims->ny[N] = nyN;
 
     /**********************************
@@ -107,18 +108,25 @@ int main()
         ((casadi_wrapper_args *) gn_args->h_args[i])->fun = &pathcon_nm4;
         ((casadi_wrapper_args *) gn_args->h_args[i])->dims = &pathcon_nm4_work;
         ((casadi_wrapper_args *) gn_args->h_args[i])->sparsity = &pathcon_nm4_sparsity_out;
+        // Simulator options
+        sim_erk_integrator_args *erk_args = (sim_erk_integrator_args *) gn_args->xp_args[i];
+        erk_args->num_steps = 4;
+        erk_args->sens_forw = true;
+        erk_args->sens_adj = false;
+        erk_args->sens_hess = false;
+        erk_args->num_forw_sens = dims->nx[i]+dims->nu[i];
         // Simulator: forward VDE
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->forward_vde_args)->fun = &vde_chain_nm4;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->forward_vde_args)->dims = &vde_chain_nm4_work;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->forward_vde_args)->sparsity = &vde_chain_nm4_sparsity_out;
+        ((casadi_wrapper_args *)erk_args->forward_vde_args)->fun = &vde_chain_nm4;
+        ((casadi_wrapper_args *)erk_args->forward_vde_args)->dims = &vde_chain_nm4_work;
+        ((casadi_wrapper_args *)erk_args->forward_vde_args)->sparsity = &vde_chain_nm4_sparsity_out;
         // Simulator: adjoint VDE
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->adjoint_vde_args)->fun = NULL;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->adjoint_vde_args)->dims = NULL;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->adjoint_vde_args)->sparsity = NULL;
+        ((casadi_wrapper_args *)erk_args->adjoint_vde_args)->fun = NULL;
+        ((casadi_wrapper_args *)erk_args->adjoint_vde_args)->dims = NULL;
+        ((casadi_wrapper_args *)erk_args->adjoint_vde_args)->sparsity = NULL;
         // Simulator: Hessian VDE
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->hess_vde_args)->fun = NULL;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->hess_vde_args)->dims = NULL;
-        ((casadi_wrapper_args *)((sim_erk_integrator_args *) gn_args->xp_args[i])->hess_vde_args)->sparsity = NULL;
+        ((casadi_wrapper_args *)erk_args->hess_vde_args)->fun = NULL;
+        ((casadi_wrapper_args *)erk_args->hess_vde_args)->dims = NULL;
+        ((casadi_wrapper_args *)erk_args->hess_vde_args)->sparsity = NULL;
         
     }
     // Least-squares cost
@@ -144,6 +152,24 @@ int main()
      **********************************/
 
     ocp_lin_in *in = create_ocp_lin_in(dims);
+
+    // set parameters
+    double xref[nx];
+    FILE *xn_file = fopen(XN_NM4_FILE, "r");
+    for (int i = 0; i < nx; i++)
+    if (!fscanf(xn_file, "%lf", &xref[i]))
+        break;
+    fclose(xn_file);
+
+    for (int i=0;i<=N;i++)
+    {
+        for (int j=0;j<dims->nx[i];j++)
+        {
+            in->p[i][j] = xref[j];
+            in->x[i][j] = xref[j];
+        }
+    }
+
 
     /**********************************
      * Create output struct
@@ -174,7 +200,7 @@ int main()
         {
             for (int k=0;k<nxu;k++)
             {
-                printf("%8.5f ", out->hess_l[k*nxu+j]);
+                printf("%8.5f ", out->hess_l[i][k*nxu+j]);
             }
             printf("\n");
         }
@@ -182,7 +208,7 @@ int main()
         printf("\nGradient of cost:\n");
         for (int j=0;j<nxu;j++)
         {
-            printf("%8.5f ", out->grad_f[j]);
+            printf("%8.5f ", out->grad_f[i][j]);
         }
         printf("\n");
 
@@ -191,7 +217,7 @@ int main()
         {
             for (int k=0;k<nxu;k++)
             {
-                printf("%8.5f ", out->jac_xp[k*dims->nx[i+1]+j]);
+                printf("%8.5f ", out->jac_xp[i][k*dims->nx[i+1]+j]);
             }
             printf("\n");
         }
@@ -201,7 +227,7 @@ int main()
         {
             for (int k=0;k<nxu;k++)
             {
-                printf("%8.5f ", out->jac_h[k*dims->nh[i]+j]);
+                printf("%8.5f ", out->jac_h[i][k*dims->nh[i]+j]);
             }
             printf("\n");
         }
@@ -209,14 +235,14 @@ int main()
         printf("\nForward simulation:\n");
         for (int j=0;j<dims->nx[i+1];j++)
         {
-            printf("%8.5f ", out->xp[j]);
+            printf("%8.5f ", out->xp[i][j]);
         }
         printf("\n");
 
         printf("\nEvaluation of inequalities:\n");
         for (int j=0;j<dims->nh[i];j++)
         {
-            printf("%8.5f ", out->h[j]);
+            printf("%8.5f ", out->h[i][j]);
         }
         printf("\n");
 

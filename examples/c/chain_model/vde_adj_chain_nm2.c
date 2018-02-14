@@ -46,7 +46,6 @@ casadi_real if_else(casadi_real c, casadi_real x, casadi_real y) { return c!=0 ?
 #define casadi_s0 CASADI_PREFIX(s0)
 #define casadi_s1 CASADI_PREFIX(s1)
 #define casadi_s2 CASADI_PREFIX(s2)
-#define casadi_s3 CASADI_PREFIX(s3)
 
 /* Printing routine */
 #define PRINTF printf
@@ -68,10 +67,9 @@ casadi_real if_else(casadi_real c, casadi_real x, casadi_real y) { return c!=0 ?
 
 static const int casadi_s0[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
 static const int casadi_s1[7] = {3, 1, 0, 3, 0, 1, 2};
-static const int casadi_s2[4] = {0, 1, 0, 0};
-static const int casadi_s3[13] = {9, 1, 0, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const int casadi_s2[13] = {9, 1, 0, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8};
 
-/* vde_adj_chain_nm2:(i0[6],i1[6],i2[3],i3[0])->(o0[9]) */
+/* vde_adj_chain_nm2:(i0[6],i1[6],i2[3],i3[9])->(o0[9]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, int* iw, casadi_real* w, void* mem) {
   casadi_real a0;
   a0=0.;
@@ -136,7 +134,7 @@ CASADI_SYMBOL_EXPORT const int* vde_adj_chain_nm2_sparsity_in(int i) {
 
 CASADI_SYMBOL_EXPORT const int* vde_adj_chain_nm2_sparsity_out(int i) {
   switch (i) {
-    case 0: return casadi_s3;
+    case 0: return casadi_s2;
     default: return 0;
   }
 }

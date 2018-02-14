@@ -10,7 +10,7 @@ d = 4;
 method = '';
 Ns = 3; % NUMBER OF INTEGRATION STEPS
 
-SOLVE = 1;
+SOLVE = 0;
 
 resX = []; resU = [];
 for Nm = 2:10
@@ -32,14 +32,15 @@ N = 20;
 % Number of variables
 nx = (Nm-1)*2*3;
 nu = 3;
-np = 0;
 
 % Trivial LS cost function
 cost_x = SX.sym('x',nx);
 cost_u = SX.sym('u',nu);
-cost_p = SX.sym('p',np);
+cost_refx = SX.sym('refx',nx);
+cost_refu = SX.sym('refy',nu);
+cost_p = [cost_refx;cost_refu];
 cost_xu = [cost_x;cost_u];
-cost_y = [cost_x;cost_u];
+cost_y = [cost_x - cost_refx;cost_u - cost_refu];
 cost_jac_y = jacobian(cost_y,cost_xu);
 ls_cost = Function(['ls_cost_nm' num2str(Nm)], {cost_x,cost_u,cost_p},{cost_y,cost_jac_y});
 
@@ -47,7 +48,8 @@ opts = struct('mex', false);
 ls_cost.generate(['ls_cost_nm' num2str(Nm)], opts);
 
 % Trivial terminal LS cost function
-cost_yN = cost_x;
+cost_p = cost_refx;
+cost_yN = cost_x - cost_refx;
 cost_jac_yN = jacobian(cost_yN,cost_x);
 ls_costN = Function(['ls_costN_nm' num2str(Nm)], {cost_x,cost_u,cost_p}, {cost_yN, cost_jac_yN});
 ls_costN.generate(['ls_costN_nm' num2str(Nm)], opts);
@@ -66,7 +68,7 @@ pathconN.generate(['pathconN_nm' num2str(Nm)], opts);
 
 % State variables
 u = SX.sym('u',3);
-par = SX.sym('p',0);
+par = SX.sym('p',nx+nu);
 dae.p = u;
 
 dae.x = [];

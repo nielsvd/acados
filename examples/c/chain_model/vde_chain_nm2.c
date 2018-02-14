@@ -71,9 +71,9 @@ static const int casadi_s0[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
 static const int casadi_s1[45] = {6, 6, 0, 6, 12, 18, 24, 30, 36, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
 static const int casadi_s2[24] = {6, 3, 0, 6, 12, 18, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
 static const int casadi_s3[7] = {3, 1, 0, 3, 0, 1, 2};
-static const int casadi_s4[4] = {0, 1, 0, 0};
+static const int casadi_s4[13] = {9, 1, 0, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8};
 
-/* vde_chain_nm2:(i0[6],i1[6x6],i2[6x3],i3[3],i4[0])->(o0[6],o1[6x6],o2[6x3]) */
+/* vde_chain_nm2:(i0[6],i1[6x6],i2[6x3],i3[3],i4[9])->(o0[6],o1[6x6],o2[6x3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, int* iw, casadi_real* w, void* mem) {
   casadi_real a0, a1, a2;
   a0=arg[0] ? arg[0][3] : 0;

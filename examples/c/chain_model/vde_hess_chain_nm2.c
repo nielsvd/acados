@@ -49,7 +49,6 @@ casadi_real if_else(casadi_real c, casadi_real x, casadi_real y) { return c!=0 ?
 #define casadi_s3 CASADI_PREFIX(s3)
 #define casadi_s4 CASADI_PREFIX(s4)
 #define casadi_s5 CASADI_PREFIX(s5)
-#define casadi_s6 CASADI_PREFIX(s6)
 
 /* Printing routine */
 #define PRINTF printf
@@ -73,11 +72,10 @@ static const int casadi_s0[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
 static const int casadi_s1[45] = {6, 6, 0, 6, 12, 18, 24, 30, 36, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
 static const int casadi_s2[24] = {6, 3, 0, 6, 12, 18, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
 static const int casadi_s3[7] = {3, 1, 0, 3, 0, 1, 2};
-static const int casadi_s4[4] = {0, 1, 0, 0};
-static const int casadi_s5[13] = {9, 1, 0, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8};
-static const int casadi_s6[49] = {45, 1, 0, 45, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44};
+static const int casadi_s4[13] = {9, 1, 0, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const int casadi_s5[49] = {45, 1, 0, 45, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44};
 
-/* vde_hess_chain_nm2:(i0[6],i1[6x6],i2[6x3],i3[6],i4[3],i5[0])->(o0[9],o1[45]) */
+/* vde_hess_chain_nm2:(i0[6],i1[6x6],i2[6x3],i3[6],i4[3],i5[9])->(o0[9],o1[45]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, int* iw, casadi_real* w, void* mem) {
   casadi_real a0, a1;
   a0=0.;
@@ -192,8 +190,8 @@ CASADI_SYMBOL_EXPORT const int* vde_hess_chain_nm2_sparsity_in(int i) {
 
 CASADI_SYMBOL_EXPORT const int* vde_hess_chain_nm2_sparsity_out(int i) {
   switch (i) {
-    case 0: return casadi_s5;
-    case 1: return casadi_s6;
+    case 0: return casadi_s4;
+    case 1: return casadi_s5;
     default: return 0;
   }
 }
