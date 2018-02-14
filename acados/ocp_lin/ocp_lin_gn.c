@@ -591,7 +591,7 @@ int ocp_lin_gn(ocp_lin_in *lin_in, ocp_lin_out *lin_out, void *args_, void *memo
         double *outputs [3];
         outputs[0] = work->F[i];
         outputs[1] = work->DF[i];
-        outputs[3] = NULL;
+        outputs[2] = NULL;
 
         external_function_in in;
         in.inputs = inputs;
@@ -620,7 +620,7 @@ int ocp_lin_gn(ocp_lin_in *lin_in, ocp_lin_out *lin_out, void *args_, void *memo
         double *outputs [3];
         outputs[0] = lin_out->h[i];
         outputs[1] = lin_out->jac_h[i];
-        outputs[3] = NULL;
+        outputs[2] = NULL;
 
         external_function_in in;
         in.inputs = inputs;
